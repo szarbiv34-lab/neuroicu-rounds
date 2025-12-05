@@ -24,8 +24,8 @@ const DEFAULT_CHECKLIST = [
 ] as const;
 
 function buildBlank(patientName = "New Patient"): RoundingSheet {
-  const checklist: Record<string, boolean> = {};
-  DEFAULT_CHECKLIST.forEach((k) => (checklist[k] = false));
+  // Optimize checklist creation using Object.fromEntries
+  const checklist = Object.fromEntries(DEFAULT_CHECKLIST.map(k => [k, false]));
   const today = new Date();
   const dateISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
     today.getDate()
