@@ -1,17 +1,26 @@
 {
   "name": "neuroicu-rounds",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Neuro ICU Rounding Application",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
+  "keywords": ["neuroicu", "rounding", "icu", "medical"],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.3"
   }
 }

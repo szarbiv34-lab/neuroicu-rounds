@@ -1,0 +1,116 @@
+// smartphraseEngine.ts
+import type { RoundingSheet } from "./types";
+import type { SmartPhraseTemplate } from "./smartphrases";
+
+function fmtChecklist(sheet: RoundingSheet) {
+  return Object.entries(sheet.checklist)
+    .map(([k, v]) => `[${v ? "x" : " "}] ${k}`)
+    .join("\n");
+}
+
+function fmtAP(sheet: RoundingSheet) {
+  if (!sheet.problems.length) return "-";
+  return sheet.problems
+    .map((p, i) => {
+      const a = (p.assessment || "-").trim();
+      const plan = (p.plan || "-").trim();
+      return `${i + 1}) ${p.title}\nA: ${a}\nP: ${plan}`;
+    })
+    .join("\n\n");
+}
+
+function fmtTasks(sheet: RoundingSheet) {
+  if (!sheet.tasks.length) return "-";
+  return sheet.tasks
+    .map((t) => `- [${t.done ? "x" : " "}] ${t.text}${t.due ? ` (${t.due})` : ""}`)
+    .join("\n");
+}
+
+function fmtPupils(sheet: RoundingSheet) {
+  const pupils = sheet.neuroExam?.pupils;
+  if (!pupils) return "-";
+  const { left, right } = pupils;
+  const lReact = left.reactive ? "reactive" : "non-reactive";
+  const rReact = right.reactive ? "reactive" : "non-reactive";
+  return `L ${left.size}mm ${lReact}, R ${right.size}mm ${rReact}`;
+}
+
+function fmtIcpCpp(sheet: RoundingSheet) {
+  const { icp, cpp, evdDrain } = sheet.neuroExam || {};
+  if (!icp && !cpp && !evdDrain) return "";
+  let lines: string[] = [];
+  if (icp !== undefined || cpp !== undefined) {
+    lines.push(`- ICP: ${icp ?? "-"} mmHg  CPP: ${cpp ?? "-"} mmHg`);
+  }
+  if (evdDrain) {
+    lines.push(`- EVD: ${evdDrain}`);
+  }
+  return lines.join("\n");
+}
+
+// Cache the token pattern regex for better performance
+const TOKEN_KEYS = [
+  "@TODAY@", "@NAME@", "@ROOM@", "@DIAGNOSIS@", "@DAY_OF_ADMIT@",
+  "@ONELINER@", "@INTERVAL@",
+  "@GCS@", "@GCS_E@", "@GCS_V@", "@GCS_M@", "@PUPILS@", "@CN@", "@MOTOR@",
+  "@SEDATION@", "@SEIZURES@", "@ICP@", "@CPP@", "@EVD@", "@ICP_CPP@",
+  "@MAP@", "@HR@", "@SPO2@", "@TEMP@", "@RR@", "@FIO2@", "@PEEP@",
+  "@VENT@", "@DRIPS@", "@LINES@",
+  "@LABS@", "@IMAGING@", "@CHECKLIST@", "@AP@", "@TASKS@", "@GOALS@"
+];
+const TOKEN_PATTERN = new RegExp(
+  TOKEN_KEYS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'g'
+);
+
+export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: RoundingSheet) {
+  const neuro = sheet.neuroExam || {};
+  const calculatedGcs = (neuro.gcsEye ?? 0) + (neuro.gcsVerbal ?? 0) + (neuro.gcsMotor ?? 0);
+  const gcsTotal = neuro.gcsTotal ?? (calculatedGcs > 0 ? calculatedGcs : "-");
+  
+  const tokens: Record<string, string> = {
+    "@TODAY@": sheet.dateISO || new Date().toISOString().slice(0, 10),
+    "@NAME@": sheet.patientName || "",
+    "@ROOM@": sheet.room ? `(Room ${sheet.room})` : "",
+    "@DIAGNOSIS@": sheet.diagnosis || "",
+    "@DAY_OF_ADMIT@": sheet.dayOfAdmit ? `HD#${sheet.dayOfAdmit}` : "",
+    "@ONELINER@": sheet.oneLiner || "-",
+    "@INTERVAL@": "-",
+    // Neuro exam tokens
+    "@GCS@": String(gcsTotal),
+    "@GCS_E@": String(neuro.gcsEye ?? "-"),
+    "@GCS_V@": String(neuro.gcsVerbal ?? "-"),
+    "@GCS_M@": String(neuro.gcsMotor ?? "-"),
+    "@PUPILS@": fmtPupils(sheet),
+    "@CN@": neuro.cranialNerves || "grossly intact",
+    "@MOTOR@": neuro.motorExam || "-",
+    "@SEDATION@": neuro.sedation || "-",
+    "@SEIZURES@": neuro.seizures || "none",
+    "@ICP@": String(neuro.icp ?? "-"),
+    "@CPP@": String(neuro.cpp ?? "-"),
+    "@EVD@": neuro.evdDrain || "-",
+    "@ICP_CPP@": fmtIcpCpp(sheet),
+    // Vitals
+    "@MAP@": String(sheet.vitals.map ?? "-"),
+    "@HR@": String(sheet.vitals.hr ?? "-"),
+    "@SPO2@": String(sheet.vitals.spo2 ?? "-"),
+    "@TEMP@": String(sheet.vitals.temp ?? "-"),
+    "@RR@": String(sheet.vitals.rr ?? "-"),
+    "@FIO2@": sheet.vitals.fio2 ? `${sheet.vitals.fio2}%` : "-",
+    "@PEEP@": sheet.vitals.peep ? `${sheet.vitals.peep}` : "-",
+    "@VENT@": sheet.vitals.vent ?? "-",
+    "@DRIPS@": sheet.drips || "-",
+    "@LINES@": sheet.linesTubes || "-",
+    "@LABS@": sheet.labs || "-",
+    "@IMAGING@": sheet.imaging || "-",
+    "@CHECKLIST@": fmtChecklist(sheet),
+    "@AP@": fmtAP(sheet),
+    "@TASKS@": fmtTasks(sheet),
+    "@GOALS@": "-",
+  };
+
+  let out = template.body;
+  out = out.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
+  out = out.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return out;
+}
