@@ -3,7 +3,8 @@ import { renderSmartPhrase } from "./smartphraseEngine";
 
 // Sample SmartPhrase template
 const template = {
-  name: "Daily ICU Note",
+  id: "example-daily-note",
+  label: "Daily ICU Note",
   body: `
 @TODAY@ — @NAME@ @ROOM@
 
@@ -28,6 +29,7 @@ Tasks:
 
 // Sample rounding sheet
 const sampleSheet = {
+  id: "example-patient-001",
   dateISO: "2025-12-05",
   patientName: "Baby Doe, M",
   room: "12A",
@@ -50,20 +52,23 @@ const sampleSheet = {
   },
   problems: [
     {
+      id: "prob-001",
       title: "Respiratory failure",
       assessment: "Stable on moderate ventilatory support, intermittent desaturations",
       plan: "Continue ventilator, gradually wean FiO2 as tolerated. Consider extubation criteria tomorrow.",
     },
     {
+      id: "prob-002",
       title: "Hypotension",
       assessment: "MAP low but improving on low-dose dopamine",
       plan: "Keep dopamine, monitor urine output and lactate. Titrate as needed.",
     },
   ],
   tasks: [
-    { text: "Obtain ABG after morning blood gas", done: false },
-    { text: "Check UAC site and document", done: true, due: "AM" },
+    { id: "task-001", text: "Obtain ABG after morning blood gas", done: false },
+    { id: "task-002", text: "Check UAC site and document", done: true, due: "AM" },
   ],
+  updatedAt: Date.now(),
 };
 
 const out = renderSmartPhrase(template as any, sampleSheet as any);
