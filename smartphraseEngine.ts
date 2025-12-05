@@ -27,6 +27,17 @@ function fmtTasks(sheet: RoundingSheet) {
     .join("\n");
 }
 
+// Cache the token pattern regex for better performance
+const TOKEN_KEYS = [
+  "@TODAY@", "@NAME@", "@ROOM@", "@ONELINER@", "@INTERVAL@",
+  "@MAP@", "@HR@", "@SPO2@", "@VENT@", "@DRIPS@", "@LINES@",
+  "@LABS@", "@IMAGING@", "@CHECKLIST@", "@AP@", "@TASKS@", "@GOALS@"
+];
+const TOKEN_PATTERN = new RegExp(
+  TOKEN_KEYS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'g'
+);
+
 export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: RoundingSheet) {
   const tokens: Record<string, string> = {
     "@TODAY@": sheet.dateISO || new Date().toISOString().slice(0, 10),
@@ -49,12 +60,8 @@ export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: Rounding
   };
 
   let out = template.body;
-  // Use a single regex pass for all token replacements for better performance
-  const tokenPattern = new RegExp(
-    Object.keys(tokens).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
-    'g'
-  );
-  out = out.replace(tokenPattern, (match) => tokens[match]);
+  // Use a single regex pass for all token replacements (pattern is cached for performance)
+  out = out.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
 
   // Cerner-friendly: plain text, tidy spacing
   out = out.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
