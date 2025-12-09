@@ -24,6 +24,9 @@ const NEURO_CHECKLIST = [
   "Family update",
 ] as const;
 
+const TABS = ["scores", "exam", "data", "plan"] as const;
+type TabKey = typeof TABS[number];
+
 const DIAGNOSIS_TYPE_LABELS: Record<DiagnosisType, string> = {
   sah: "Subarachnoid hemorrhage",
   stroke: "Ischemic stroke",
@@ -47,6 +50,141 @@ const DIAGNOSIS_TEMPLATE_MAP: Partial<Record<DiagnosisType, string>> = {
 };
 
 const DEFAULT_TEMPLATE_ID = TEMPLATES[0].id;
+
+type DiagnosisPrefill = {
+  oneLiner?: string;
+  diagnosisLabel?: string;
+  problemTemplates?: Array<Pick<Problem, "title" | "assessment" | "plan">>;
+  taskTemplates?: string[];
+  drips?: string;
+  linesTubes?: string;
+  checklistTrue?: string[];
+};
+
+const fillTemplateText = (template: string, sheet: RoundingSheet) => {
+  return template
+    .replace(/\{\{HD\}\}/g, `HD ${sheet.dayOfAdmit ?? 1}`)
+    .replace(/\{\{ROOM\}\}/g, sheet.room ? `Room ${sheet.room}` : "ICU");
+};
+
+const DIAGNOSIS_DEFAULTS: Partial<Record<DiagnosisType, DiagnosisPrefill>> = {
+  sah: {
+    oneLiner: "SAH {{HD}} s/p securing, in vasospasm window",
+    problemTemplates: [
+      {
+        title: "SAH - vasospasm prevention",
+        assessment: "Secured aneurysm, monitoring TCDs, neuro exam stable",
+        plan: "- Nimodipine 60mg q4h\n- Euvolemia, Na 140-150\n- Daily TCDs, CTA if neuro change",
+      },
+      {
+        title: "ICP management",
+        assessment: "EVD draining at 15 cm, ICP controlled",
+        plan: "- Keep EVD at 15 cm, hourly output\n- CPP goal >65\n- Repeat CT if ICP >20 sustained",
+      },
+    ],
+    taskTemplates: ["Daily TCD", "Update family", "EVD leveling"],
+    drips: "Nimodipine q4h, maintenance IVF",
+    linesTubes: "EVD @15, A-line, Foley",
+    checklistTrue: ["HOB >30°", "Neuro exam documented"],
+  },
+  stroke: {
+    oneLiner: "Large vessel stroke {{HD}} s/p reperfusion, swelling watch",
+    problemTemplates: [
+      {
+        title: "Malignant edema watch",
+        assessment: "Post thrombectomy cerebral edema risk",
+        plan: "- HOB 30°\n- Hypertonic 3% PRN\n- q1h neuro checks",
+      },
+      {
+        title: "Secondary stroke prevention",
+        assessment: "Need BP control and antithrombotics",
+        plan: "- SBP goal 140-160\n- Restart antiplatelet when safe\n- PT/OT consult",
+      },
+    ],
+    taskTemplates: ["CT head AM", "PT/OT eval", "Family update"],
+    drips: "3% NaCl at goal",
+    linesTubes: "ETT, OGT, Foley, A-line",
+    checklistTrue: ["Blood pressure goal", "Family update"],
+  },
+  ich: {
+    oneLiner: "Deep ICH {{HD}}, BP control + ICP monitoring",
+    problemTemplates: [
+      {
+        title: "ICH care bundle",
+        assessment: "Large basal ganglia hemorrhage with IVH",
+        plan: "- SBP 140-160\n- Hypertonic therapy per protocol\n- Repeat CT in AM",
+      },
+      {
+        title: "Airway/Ventilation",
+        assessment: "Protective ventilation, sedation needs",
+        plan: "- Maintain PaCO2 35-40\n- Daily SAT/SBT when appropriate",
+      },
+    ],
+    taskTemplates: ["CT head 24h", "Discuss goals of care"],
+    drips: "Nicardipine infusion",
+    linesTubes: "EVD @10, A-line, Foley",
+    checklistTrue: ["ICP/CPP target", "Blood pressure goal"],
+  },
+  tbi: {
+    oneLiner: "Severe TBI {{HD}}, ICP guided therapy",
+    problemTemplates: [
+      {
+        title: "TBI neuroprotection",
+        assessment: "Monitoring ICP, sedation ongoing",
+        plan: "- CPP 60-70\n- Temp <38°C\n- Sedation/analgesia per protocol",
+      },
+    ],
+    taskTemplates: ["CT head AM", "cEEG review"],
+    drips: "Propofol, hypertonic prn",
+    linesTubes: "EVD, A-line, vent",
+    checklistTrue: ["Normothermia", "Sodium target"],
+  },
+  seizure: {
+    oneLiner: "Status epilepticus {{HD}}, escalating antiseizure therapy",
+    problemTemplates: [
+      {
+        title: "Seizure control",
+        assessment: "Refractory status, on cEEG",
+        plan: "- ASM load complete\n- Midazolam drip titrate to burst suppression\n- Daily EEG summary",
+      },
+    ],
+    taskTemplates: ["EEG summary note", "Antiseizure levels"],
+    drips: "Midazolam, ASM per protocol",
+    linesTubes: "ETT, Foley, CVC",
+    checklistTrue: ["Seizure prophylaxis"],
+  },
+};
+
+const buildDiagnosisPrefillPatch = (sheet: RoundingSheet, diagnosisType: DiagnosisType): Partial<RoundingSheet> => {
+  const defaults = DIAGNOSIS_DEFAULTS[diagnosisType];
+  if (!defaults) return {};
+  const patch: Partial<RoundingSheet> = {};
+  if (!sheet.diagnosis) {
+    patch.diagnosis = defaults.diagnosisLabel || DIAGNOSIS_TYPE_LABELS[diagnosisType];
+  }
+  if (!sheet.oneLiner && defaults.oneLiner) {
+    patch.oneLiner = fillTemplateText(defaults.oneLiner, sheet);
+  }
+  if (!sheet.problems.length && defaults.problemTemplates?.length) {
+    patch.problems = defaults.problemTemplates.map((tpl) => ({ id: uid(), ...tpl }));
+  }
+  if (!sheet.tasks.length && defaults.taskTemplates?.length) {
+    patch.tasks = defaults.taskTemplates.map((text) => ({ id: uid(), text, done: false, due: "Today" }));
+  }
+  if (!sheet.drips && defaults.drips) {
+    patch.drips = defaults.drips;
+  }
+  if (!sheet.linesTubes && defaults.linesTubes) {
+    patch.linesTubes = defaults.linesTubes;
+  }
+  if (defaults.checklistTrue?.length) {
+    patch.checklist = {
+      ...sheet.checklist,
+      ...Object.fromEntries(defaults.checklistTrue.map((key) => [key, true] as const)),
+    };
+  }
+  return patch;
+};
 
 const DIAGNOSIS_SELECT_OPTIONS = (Object.keys(DIAGNOSIS_TYPE_LABELS) as DiagnosisType[]).map((dx) => ({
   value: dx,
@@ -253,7 +391,7 @@ const DEMO_PATIENTS: RoundingSheet[] = [
 export default function RoundingApp() {
   const [sheets, setSheets] = useState<RoundingSheet[]>(DEMO_PATIENTS);
   const [activeId, setActiveId] = useState<Id>(sheets[0].id);
-  const [activeTab, setActiveTab] = useState<"scores" | "exam" | "data" | "plan">("scores");
+  const [activeTab, setActiveTab] = useState<TabKey>("scores");
   
   const active = useMemo(() => sheets.find((x) => x.id === activeId)!, [sheets, activeId]);
 
@@ -269,6 +407,7 @@ export default function RoundingApp() {
       setTemplateId(suggested);
     }
   }, [active.diagnosisType, autoTemplate, templateId]);
+
 
   const updateActive = useCallback((patch: Partial<RoundingSheet>) => {
     setSheets((prev) =>
@@ -317,6 +456,24 @@ export default function RoundingApp() {
     updateActive({ tasks: active.tasks.filter((t) => t.id !== id) });
   }, [active.tasks, updateActive]);
 
+  const handleDiagnosisTypeChange = useCallback((value: DiagnosisType | "") => {
+    const nextType = (value || undefined) as DiagnosisType | undefined;
+    const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
+    if (nextType) {
+      Object.assign(patch, buildDiagnosisPrefillPatch(active, nextType));
+    }
+    updateActive(patch);
+  }, [active, updateActive]);
+
+  const handleDiagnosisPrefill = useCallback(() => {
+    if (!active.diagnosisType) return;
+    const patch = buildDiagnosisPrefillPatch(active, active.diagnosisType);
+    if (Object.keys(patch).length) {
+      updateActive(patch);
+    }
+  }, [active, updateActive]);
+
+
   const handleTemplateChange = useCallback((nextId: string) => {
     setTemplateId(nextId);
     setAutoTemplate(false);
@@ -363,6 +520,38 @@ export default function RoundingApp() {
       window.prompt("Copy SmartPhrase text:", text);
     }
   }, [smartphrasePreview, activeTemplate.label]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const meta = event.metaKey || event.ctrlKey;
+      if (!meta) return;
+      const lowerKey = event.key.toLowerCase();
+      if (event.shiftKey && lowerKey === "p") {
+        event.preventDefault();
+        addProblem();
+        return;
+      }
+      if (event.shiftKey && lowerKey === "t") {
+        event.preventDefault();
+        addTask();
+        return;
+      }
+      if (event.shiftKey && lowerKey === "c") {
+        event.preventDefault();
+        void copySmartPhrase();
+        return;
+      }
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const currentIndex = TABS.indexOf(activeTab);
+        const nextIndex = (currentIndex + direction + TABS.length) % TABS.length;
+        setActiveTab(TABS[nextIndex]);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeTab, addProblem, addTask, copySmartPhrase]);
 
   const sortedSheets = useMemo(() => [...sheets].sort((a, b) => b.updatedAt - a.updatedAt), [sheets]);
 
@@ -411,7 +600,7 @@ export default function RoundingApp() {
             />
             Auto-match template
           </label>
-          <button onClick={copySmartPhrase} style={btnPrimary}>
+          <button onClick={copySmartPhrase} style={btnPrimary} title="Cmd/Ctrl+Shift+C">
             📋 Copy SmartPhrase
           </button>
           <a
@@ -522,7 +711,7 @@ export default function RoundingApp() {
                 <label style={{ ...label, marginTop: 0 }}>Diagnosis Type</label>
                 <select
                   value={active.diagnosisType ?? ""}
-                  onChange={(e) => updateActive({ diagnosisType: (e.target.value || undefined) as DiagnosisType | undefined })}
+                  onChange={(e) => handleDiagnosisTypeChange(e.target.value as DiagnosisType | "")}
                   style={{ ...input, minWidth: 200 }}
                 >
                   <option value="">Select type...</option>
@@ -532,6 +721,18 @@ export default function RoundingApp() {
                     </option>
                   ))}
                 </select>
+                <button
+                  onClick={handleDiagnosisPrefill}
+                  disabled={!active.diagnosisType}
+                  style={{
+                    ...btn,
+                    marginTop: 6,
+                    fontSize: 12,
+                    opacity: active.diagnosisType ? 1 : 0.6,
+                  }}
+                >
+                  ⚡ Prefill note
+                </button>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <span style={{ fontSize: 12, color: "#64748b" }}>HD#</span>
@@ -559,7 +760,7 @@ export default function RoundingApp() {
 
           {/* Tabs */}
           <div style={{ display: "flex", gap: 4, marginBottom: 16, flexWrap: "wrap" }}>
-            {(["scores", "exam", "data", "plan"] as const).map((tab) => (
+            {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -703,49 +904,48 @@ export default function RoundingApp() {
                 </div>
               </div>
 
-              {/* Other neuro exam fields */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={label}>Motor Exam</label>
-                  <input
-                    value={active.neuroExam?.motorExam ?? ""}
-                    onChange={(e) => updateNeuroExam({ motorExam: e.target.value })}
-                    style={input}
-                    placeholder="LUE 5/5, RUE 5/5, LLE 5/5, RLE 5/5"
-                  />
+              <CollapsibleSection title="Advanced Neuro Exam" defaultCollapsed>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={label}>Motor Exam</label>
+                    <input
+                      value={active.neuroExam?.motorExam ?? ""}
+                      onChange={(e) => updateNeuroExam({ motorExam: e.target.value })}
+                      style={input}
+                      placeholder="LUE 5/5, RUE 5/5, LLE 5/5, RLE 5/5"
+                    />
+                  </div>
+                  <div>
+                    <label style={label}>Cranial Nerves</label>
+                    <input
+                      value={active.neuroExam?.cranialNerves ?? ""}
+                      onChange={(e) => updateNeuroExam({ cranialNerves: e.target.value })}
+                      style={input}
+                      placeholder="Grossly intact"
+                    />
+                  </div>
+                  <div>
+                    <label style={label}>Sedation / RASS</label>
+                    <input
+                      value={active.neuroExam?.sedation ?? ""}
+                      onChange={(e) => updateNeuroExam({ sedation: e.target.value })}
+                      style={input}
+                      placeholder="RASS 0, calm and alert"
+                    />
+                  </div>
+                  <div>
+                    <label style={label}>Seizure Activity</label>
+                    <input
+                      value={active.neuroExam?.seizures ?? ""}
+                      onChange={(e) => updateNeuroExam({ seizures: e.target.value })}
+                      style={input}
+                      placeholder="None, on cEEG"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label style={label}>Cranial Nerves</label>
-                  <input
-                    value={active.neuroExam?.cranialNerves ?? ""}
-                    onChange={(e) => updateNeuroExam({ cranialNerves: e.target.value })}
-                    style={input}
-                    placeholder="Grossly intact"
-                  />
-                </div>
-                <div>
-                  <label style={label}>Sedation / RASS</label>
-                  <input
-                    value={active.neuroExam?.sedation ?? ""}
-                    onChange={(e) => updateNeuroExam({ sedation: e.target.value })}
-                    style={input}
-                    placeholder="RASS 0, calm and alert"
-                  />
-                </div>
-                <div>
-                  <label style={label}>Seizure Activity</label>
-                  <input
-                    value={active.neuroExam?.seizures ?? ""}
-                    onChange={(e) => updateNeuroExam({ seizures: e.target.value })}
-                    style={input}
-                    placeholder="None, on cEEG"
-                  />
-                </div>
-              </div>
+              </CollapsibleSection>
 
-              {/* ICP/CPP */}
-              <div style={{ marginTop: 16, padding: 12, background: "#fef2f2", borderRadius: 10, border: "1px solid #fecaca" }}>
-                <div style={{ fontWeight: 600, color: "#991b1b", marginBottom: 8 }}>ICP Monitoring (if applicable)</div>
+              <CollapsibleSection title="ICP / Drainage" defaultCollapsed>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                   <div>
                     <label style={label}>ICP (mmHg)</label>
@@ -777,7 +977,7 @@ export default function RoundingApp() {
                     />
                   </div>
                 </div>
-              </div>
+              </CollapsibleSection>
             </div>
           )}
 
@@ -843,11 +1043,28 @@ export default function RoundingApp() {
                 <input value={active.drips} onChange={(e) => updateActive({ drips: e.target.value })} style={input} placeholder="Propofol, Norepi, Nimodipine..." />
               </div>
 
-              <h3 style={{ ...sectionTitle, marginTop: 24 }}>Labs</h3>
-              <textarea value={active.labs} onChange={(e) => updateActive({ labs: e.target.value })} rows={4} style={textarea} placeholder="Na 142, K 4.0, Cr 0.9, WBC 8.2, Hgb 10.1, Plt 180..." />
-
-              <h3 style={{ ...sectionTitle, marginTop: 16 }}>Imaging</h3>
-              <textarea value={active.imaging} onChange={(e) => updateActive({ imaging: e.target.value })} rows={3} style={textarea} placeholder="CT Head: Stable SAH, no new hemorrhage. CTA: No vasospasm..." />
+              <CollapsibleSection title="Labs & Imaging" defaultCollapsed>
+                <div>
+                  <label style={label}>Labs</label>
+                  <textarea
+                    value={active.labs}
+                    onChange={(e) => updateActive({ labs: e.target.value })}
+                    rows={4}
+                    style={textarea}
+                    placeholder="Na 142, K 4.0, Cr 0.9, WBC 8.2, Hgb 10.1, Plt 180..."
+                  />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <label style={label}>Imaging</label>
+                  <textarea
+                    value={active.imaging}
+                    onChange={(e) => updateActive({ imaging: e.target.value })}
+                    rows={3}
+                    style={textarea}
+                    placeholder="CT Head: Stable SAH, no new hemorrhage. CTA: No vasospasm..."
+                  />
+                </div>
+              </CollapsibleSection>
             </div>
           )}
 
@@ -865,9 +1082,10 @@ export default function RoundingApp() {
               </div>
 
               {/* Problems */}
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
-                <h3 style={{ ...sectionTitle, marginBottom: 0 }}>Problem List / Plan</h3>
-                <button onClick={addProblem} style={{ ...btnSuccess, marginLeft: "auto" }}>+ Add Problem</button>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: 12, gap: 8 }}>
+                <h3 style={{ ...sectionTitle, marginBottom: 0, marginRight: "auto" }}>Problem List / Plan</h3>
+                <span style={hotkeyHint}>Hotkey: Cmd/Ctrl+Shift+P</span>
+                <button onClick={addProblem} style={btnSuccess} title="Cmd/Ctrl+Shift+P">+ Add Problem</button>
               </div>
 
               {active.problems.length === 0 && (
@@ -896,9 +1114,10 @@ export default function RoundingApp() {
               ))}
 
               {/* Tasks */}
-              <div style={{ display: "flex", alignItems: "center", marginTop: 24, marginBottom: 12 }}>
-                <h3 style={{ ...sectionTitle, marginBottom: 0 }}>Tasks</h3>
-                <button onClick={addTask} style={{ ...btnSuccess, marginLeft: "auto" }}>+ Add Task</button>
+              <div style={{ display: "flex", alignItems: "center", marginTop: 24, marginBottom: 12, gap: 8 }}>
+                <h3 style={{ ...sectionTitle, marginBottom: 0, marginRight: "auto" }}>Tasks</h3>
+                <span style={hotkeyHint}>Hotkey: Cmd/Ctrl+Shift+T</span>
+                <button onClick={addTask} style={btnSuccess} title="Cmd/Ctrl+Shift+T">+ Add Task</button>
               </div>
 
               {active.tasks.map((t) => (
@@ -1076,3 +1295,47 @@ const chip = (on: boolean): React.CSSProperties => ({
   cursor: "pointer",
   transition: "all 0.15s",
 });
+
+const hotkeyHint: React.CSSProperties = {
+  fontSize: 11,
+  color: "#94a3b8",
+};
+
+type CollapsibleProps = {
+  title: string;
+  defaultCollapsed?: boolean;
+  children: React.ReactNode;
+};
+
+const CollapsibleSection = ({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  return (
+    <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, background: "#f8fafc" }}>
+      <button
+        onClick={() => setCollapsed((prev) => !prev)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontWeight: 600,
+          fontSize: 13,
+          color: "#0f172a",
+          cursor: "pointer",
+        }}
+        aria-expanded={!collapsed}
+      >
+        <span>{collapsed ? "▸" : "▾"}</span>
+        <span>{title}</span>
+      </button>
+      {!collapsed && (
+        <div style={{ padding: 12, borderTop: "1px solid #e2e8f0", background: "#fff", borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
