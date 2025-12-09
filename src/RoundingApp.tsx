@@ -604,7 +604,7 @@ export default function RoundingApp() {
             📋 Copy SmartPhrase
           </button>
           <a
-            href="https://sapphire-cilka-18.tiiny.site"
+            href="https://amaranth-ula-81.tiiny.site"
             target="_blank"
             rel="noreferrer"
             style={{ ...btn, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}
