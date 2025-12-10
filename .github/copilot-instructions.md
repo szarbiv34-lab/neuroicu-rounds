@@ -28,7 +28,7 @@ npm install
 ```bash
 npm run dev
 ```
-The Vite dev server opens automatically (defaults to http://localhost:3000). If ports 3000/3001 are busy, it will fall back to the next available port.
+The Vite dev server opens automatically at http://localhost:3000.
 
 ### Production Build
 ```bash
@@ -92,7 +92,7 @@ The repository uses GitHub Actions for automated deployment:
 - Workflow: `.github/workflows/deploy.yml`
 - Triggered on push to `main` or manual workflow dispatch
 - Build uses `VITE_BASE_PATH=/neuroicu-rounds/` for proper asset URLs
-- Deploys to `https://szarbiv34-lab.github.io/neuroicu-rounds/`
+- Deploys to GitHub Pages (URL available in Settings → Pages)
 
 ### Configuration
 `vite.config.ts` reads from `VITE_BASE_PATH` environment variable:
