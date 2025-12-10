@@ -48,25 +48,24 @@ function fmtIcpCpp(sheet: RoundingSheet) {
   return lines.join("\n");
 }
 
-// Cache the token pattern regex for better performance
-const TOKEN_KEYS = [
-  "@TODAY@", "@NAME@", "@ROOM@", "@DIAGNOSIS@", "@DAY_OF_ADMIT@",
-  "@ONELINER@", "@INTERVAL@",
-  "@GCS@", "@GCS_E@", "@GCS_V@", "@GCS_M@", "@PUPILS@", "@CN@", "@MOTOR@",
-  "@SEDATION@", "@SEIZURES@", "@ICP@", "@CPP@", "@EVD@", "@ICP_CPP@",
-  "@MAP@", "@HR@", "@SPO2@", "@TEMP@", "@RR@", "@FIO2@", "@PEEP@",
-  "@VENT@", "@DRIPS@", "@LINES@",
-  "@LABS@", "@IMAGING@", "@CHECKLIST@", "@AP@", "@TASKS@", "@GOALS@"
-];
-const TOKEN_PATTERN = new RegExp(
-  TOKEN_KEYS.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
-  'g'
-);
+// Pre-compile regex pattern for optimal performance
+const TOKEN_PATTERN = /@(?:TODAY|NAME|ROOM|DIAGNOSIS|DAY_OF_ADMIT|ONELINER|INTERVAL|GCS(?:_[EVM])?|PUPILS|CN|MOTOR|SEDATION|SEIZURES|ICP(?:_CPP)?|CPP|EVD|MAP|HR|SPO2|TEMP|RR|FIO2|PEEP|VENT|DRIPS|LINES|LABS|IMAGING|CHECKLIST|AP|TASKS|GOALS)@/g;
+
+// Pre-compile whitespace cleanup patterns
+const CRLF_PATTERN = /\r\n/g;
+const MULTIPLE_NEWLINES = /\n{3,}/g;
 
 export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: RoundingSheet) {
   const neuro = sheet.neuroExam || {};
   const calculatedGcs = (neuro.gcsEye ?? 0) + (neuro.gcsVerbal ?? 0) + (neuro.gcsMotor ?? 0);
   const gcsTotal = neuro.gcsTotal ?? (calculatedGcs > 0 ? calculatedGcs : "-");
+  
+  // Pre-compute formatted values to avoid redundant function calls
+  const pupilsFormatted = fmtPupils(sheet);
+  const icpCppFormatted = fmtIcpCpp(sheet);
+  const checklistFormatted = fmtChecklist(sheet);
+  const apFormatted = fmtAP(sheet);
+  const tasksFormatted = fmtTasks(sheet);
   
   const tokens: Record<string, string> = {
     "@TODAY@": sheet.dateISO || new Date().toISOString().slice(0, 10),
@@ -81,7 +80,7 @@ export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: Rounding
     "@GCS_E@": String(neuro.gcsEye ?? "-"),
     "@GCS_V@": String(neuro.gcsVerbal ?? "-"),
     "@GCS_M@": String(neuro.gcsMotor ?? "-"),
-    "@PUPILS@": fmtPupils(sheet),
+    "@PUPILS@": pupilsFormatted,
     "@CN@": neuro.cranialNerves || "grossly intact",
     "@MOTOR@": neuro.motorExam || "-",
     "@SEDATION@": neuro.sedation || "-",
@@ -89,7 +88,7 @@ export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: Rounding
     "@ICP@": String(neuro.icp ?? "-"),
     "@CPP@": String(neuro.cpp ?? "-"),
     "@EVD@": neuro.evdDrain || "-",
-    "@ICP_CPP@": fmtIcpCpp(sheet),
+    "@ICP_CPP@": icpCppFormatted,
     // Vitals
     "@MAP@": String(sheet.vitals.map ?? "-"),
     "@HR@": String(sheet.vitals.hr ?? "-"),
@@ -103,14 +102,17 @@ export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: Rounding
     "@LINES@": sheet.linesTubes || "-",
     "@LABS@": sheet.labs || "-",
     "@IMAGING@": sheet.imaging || "-",
-    "@CHECKLIST@": fmtChecklist(sheet),
-    "@AP@": fmtAP(sheet),
-    "@TASKS@": fmtTasks(sheet),
+    "@CHECKLIST@": checklistFormatted,
+    "@AP@": apFormatted,
+    "@TASKS@": tasksFormatted,
     "@GOALS@": "-",
   };
 
-  let out = template.body;
-  out = out.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
-  out = out.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  // Single-pass replacement using pre-compiled regex
+  let out = template.body.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
+  
+  // Efficient whitespace cleanup
+  out = out.replace(CRLF_PATTERN, "\n").replace(MULTIPLE_NEWLINES, "\n\n").trim();
+  
   return out;
 }
