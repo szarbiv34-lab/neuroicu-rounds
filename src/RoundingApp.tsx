@@ -440,10 +440,12 @@ export default function RoundingApp() {
   const [autoTemplate, setAutoTemplate] = useState(true);
   const activeTemplate = useMemo(() => TEMPLATES.find((t) => t.id === templateId)!, [templateId]);
   
-  // Optimize smartphrase preview to only recompute when template or critical sheet data changes
+  // Optimize smartphrase preview: depends on active (state is immutable, so when any field 
+  // changes, active reference changes). This is simpler and more maintainable than listing
+  // all individual fields while still being efficient due to React's state immutability.
   const smartphrasePreview = useMemo(() => {
     return renderSmartPhrase(activeTemplate, active);
-  }, [activeTemplate, active.neuroExam, active.vitals, active.problems, active.tasks, active.checklist, active.dateISO, active.patientName, active.room, active.diagnosis, active.dayOfAdmit, active.oneLiner, active.drips, active.linesTubes, active.labs, active.imaging]);
+  }, [activeTemplate, active]);
 
   useEffect(() => {
     if (!autoTemplate) return;
@@ -598,10 +600,11 @@ export default function RoundingApp() {
     return () => window.removeEventListener("keydown", handler);
   }, [activeTab, addProblem, addTask, copySmartPhrase]);
 
-  // Optimize sorting to only recompute when sheets length or updatedAt values change
+  // Optimize sorting: only recompute when sheets array reference changes
+  // Since sheets is replaced (not mutated) when updated, this is efficient
   const sortedSheets = useMemo(() => {
     return [...sheets].sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [sheets.length, sheets.map(s => s.updatedAt).join(',')]);
+  }, [sheets]);
 
   const gcsTotal = useMemo(() => {
     const ne = active.neuroExam || {};
