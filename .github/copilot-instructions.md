@@ -28,7 +28,7 @@ npm install
 ```bash
 npm run dev
 ```
-The Vite dev server opens automatically at http://localhost:3000.
+The Vite dev server opens automatically at http://localhost:3000 (configured in vite.config.ts).
 
 ### Production Build
 ```bash
