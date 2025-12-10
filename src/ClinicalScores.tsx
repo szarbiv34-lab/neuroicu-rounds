@@ -1,5 +1,5 @@
 // ClinicalScores.tsx - Neuro ICU Clinical Decision Tools
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { 
   RoundingSheet, 
   HuntHessGrade, 
@@ -11,8 +11,11 @@ import type {
 } from "./types";
 
 // ============================================================================
-// HUNT & HESS SCALE
+// STATIC LOOKUPS - Moved outside component for performance
+// These don't change and should not be recreated on every render
 // ============================================================================
+
+// HUNT & HESS SCALE
 const HUNT_HESS_DESCRIPTIONS: Record<HuntHessGrade, { description: string; mortality: string; criteria: string }> = {
   1: { 
     description: "Asymptomatic or mild headache", 
@@ -131,8 +134,28 @@ const MOTOR_STRENGTH_DESCRIPTIONS = {
 };
 
 // ============================================================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS - Optimized for performance
 // ============================================================================
+
+// Memoized GCS categories to avoid object creation
+const GCS_CATEGORIES = {
+  severe: { label: "Severe", color: "#dc2626", bgColor: "#fef2f2" },
+  moderate: { label: "Moderate", color: "#f59e0b", bgColor: "#fffbeb" },
+  mild: { label: "Mild", color: "#16a34a", bgColor: "#f0fdf4" }
+} as const;
+
+const HUNT_HESS_COLORS = {
+  good: { color: "#16a34a", bgColor: "#f0fdf4" },
+  moderate: { color: "#f59e0b", bgColor: "#fffbeb" },
+  poor: { color: "#dc2626", bgColor: "#fef2f2" }
+} as const;
+
+const FISHER_COLORS = {
+  low: { color: "#16a34a", bgColor: "#f0fdf4" },
+  moderate: { color: "#f59e0b", bgColor: "#fffbeb" },
+  high: { color: "#dc2626", bgColor: "#fef2f2" }
+} as const;
+
 function calculateBleedDay(ruptureDate: string | undefined): number | null {
   if (!ruptureDate) return null;
   const rupture = new Date(ruptureDate);
@@ -143,21 +166,21 @@ function calculateBleedDay(ruptureDate: string | undefined): number | null {
 }
 
 function getGcsCategory(gcs: number): { label: string; color: string; bgColor: string } {
-  if (gcs <= 8) return { label: "Severe", color: "#dc2626", bgColor: "#fef2f2" };
-  if (gcs <= 12) return { label: "Moderate", color: "#f59e0b", bgColor: "#fffbeb" };
-  return { label: "Mild", color: "#16a34a", bgColor: "#f0fdf4" };
+  if (gcs <= 8) return GCS_CATEGORIES.severe;
+  if (gcs <= 12) return GCS_CATEGORIES.moderate;
+  return GCS_CATEGORIES.mild;
 }
 
 function getHuntHessColor(grade: HuntHessGrade): { color: string; bgColor: string } {
-  if (grade <= 2) return { color: "#16a34a", bgColor: "#f0fdf4" };
-  if (grade === 3) return { color: "#f59e0b", bgColor: "#fffbeb" };
-  return { color: "#dc2626", bgColor: "#fef2f2" };
+  if (grade <= 2) return HUNT_HESS_COLORS.good;
+  if (grade === 3) return HUNT_HESS_COLORS.moderate;
+  return HUNT_HESS_COLORS.poor;
 }
 
 function getModifiedFisherColor(grade: ModifiedFisherGrade): { color: string; bgColor: string } {
-  if (grade <= 1) return { color: "#16a34a", bgColor: "#f0fdf4" };
-  if (grade <= 2) return { color: "#f59e0b", bgColor: "#fffbeb" };
-  return { color: "#dc2626", bgColor: "#fef2f2" };
+  if (grade <= 1) return FISHER_COLORS.low;
+  if (grade <= 2) return FISHER_COLORS.moderate;
+  return FISHER_COLORS.high;
 }
 
 function computeIchScore(ich: ICHScores | undefined, fallbackGcs: number): { score: number; applied: boolean } {
@@ -209,7 +232,7 @@ function getNihssGuidance(score?: number): string {
 }
 
 // ============================================================================
-// HIPAA GUARDS
+// HIPAA GUARDS - Pre-compiled regexes for better performance
 // ============================================================================
 const HIPAA_RULES = [
   { regex: /\bmrn\b/i, message: "MRN detected" },
@@ -218,13 +241,22 @@ const HIPAA_RULES = [
   { regex: /\b\d{3}[-.\s]?\d{2}[-.\s]?\d{4}\b/, message: "SSN-like number detected" },
   { regex: /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, message: "Phone number detected" },
   { regex: /@/, message: "Email address detected" },
-];
+] as const;
+
+const MAX_TEXT_LENGTH = 200;
 
 function findHipaaIssue(text: string): string | null {
   if (!text) return null;
-  const hit = HIPAA_RULES.find((rule) => rule.regex.test(text));
-  if (hit) return hit.message;
-  if (text.length > 200) return "Entry is too long for a structured score field";
+  // Early exit for length check
+  if (text.length > MAX_TEXT_LENGTH) {
+    return "Entry is too long for a structured score field";
+  }
+  // Find first matching rule
+  for (const rule of HIPAA_RULES) {
+    if (rule.regex.test(text)) {
+      return rule.message;
+    }
+  }
   return null;
 }
 
@@ -249,6 +281,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
   const showICH = noDxType || sheet.diagnosisType === "ich" || diagnosisText.includes("ich") || diagnosisText.includes("intracerebral") || diagnosisText.includes("hemorrhage");
   const [hipaaWarning, setHipaaWarning] = useState<string | null>(null);
 
+  // Optimize section registry to only recompute when diagnosis conditions change
   const sectionRegistry = useMemo(() => ([
     { id: "gcs", label: "GCS", required: true, condition: true },
     { id: "sah", label: "SAH scales", required: false, condition: showSAH },
@@ -278,46 +311,59 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     });
   }, [sectionRegistry]);
 
-  // Calculate current GCS
+  // Optimized GCS calculations - only recompute when values actually change
   const currentGcs = useMemo(() => {
-    const e = neuro.gcsEye || 0;
-    const v = neuro.gcsVerbal || 0;
-    const m = neuro.gcsMotor || 0;
-    return e + v + m;
+    return (neuro.gcsEye || 0) + (neuro.gcsVerbal || 0) + (neuro.gcsMotor || 0);
   }, [neuro.gcsEye, neuro.gcsVerbal, neuro.gcsMotor]);
 
-  // Calculate admission GCS
   const admissionGcs = useMemo(() => {
-    const e = neuro.admissionGcsEye || 0;
-    const v = neuro.admissionGcsVerbal || 0;
-    const m = neuro.admissionGcsMotor || 0;
-    return e + v + m;
+    return (neuro.admissionGcsEye || 0) + (neuro.admissionGcsVerbal || 0) + (neuro.admissionGcsMotor || 0);
   }, [neuro.admissionGcsEye, neuro.admissionGcsVerbal, neuro.admissionGcsMotor]);
 
-  // Calculate bleed day for SAH
+  // Memoize bleed day calculation
   const bleedDay = useMemo(() => {
     return calculateBleedDay(scores.sah?.ruptureDate);
   }, [scores.sah?.ruptureDate]);
 
-  const ichScoreInfo = useMemo(() => computeIchScore(scores.ich, currentGcs || admissionGcs), [scores.ich, currentGcs, admissionGcs]);
-  const nihssTier = useMemo(() => getNihssCategory(scores.stroke?.nihss), [scores.stroke?.nihss]);
-  const ichTier = ichScoreInfo.applied ? getIchSeverity(ichScoreInfo.score) : null;
-  const ichMortality = ichScoreInfo.applied ? (ICH_MORTALITY_TABLE[ichScoreInfo.score] ?? "—") : null;
+  // Memoize ICH score computation
+  const ichScoreInfo = useMemo(() => {
+    return computeIchScore(scores.ich, currentGcs || admissionGcs);
+  }, [scores.ich, currentGcs, admissionGcs]);
+  
+  // Memoize NIHSS tier
+  const nihssTier = useMemo(() => {
+    return getNihssCategory(scores.stroke?.nihss);
+  }, [scores.stroke?.nihss]);
+  
+  // Compute ICH tier and mortality once
+  const ichTier = useMemo(() => {
+    return ichScoreInfo.applied ? getIchSeverity(ichScoreInfo.score) : null;
+  }, [ichScoreInfo.applied, ichScoreInfo.score]);
+  
+  const ichMortality = useMemo(() => {
+    return ichScoreInfo.applied ? (ICH_MORTALITY_TABLE[ichScoreInfo.score] ?? "—") : null;
+  }, [ichScoreInfo.applied, ichScoreInfo.score]);
+  
   const aspectsScore = scores.stroke?.aspects;
-  const aspectsBadge = (() => {
+  
+  // Memoize ASPECTS badge computation
+  const aspectsBadge = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return { label: "Awaiting score", color: "#64748b", bg: "#f1f5f9" };
     if (aspectsScore <= 5) return { label: "Large core", color: "#b91c1c", bg: "#fee2e2" };
     if (aspectsScore >= 7) return { label: "Favorable", color: "#15803d", bg: "#dcfce7" };
     return { label: "Borderline", color: "#b45309", bg: "#ffedd5" };
-  })();
-  const aspectsGuidance = (() => {
+  }, [aspectsScore]);
+  
+  // Memoize ASPECTS guidance
+  const aspectsGuidance = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return "Document ASPECTS to quantify early ischemic change.";
     if (aspectsScore <= 5) return "Large core (>1/3 MCA) — focus on edema control and early hemicraniectomy planning.";
     if (aspectsScore >= 7) return "Favorable core — thrombectomy candidate if LVO and within 24h window.";
     return "Borderline core — obtain perfusion imaging for penumbra estimate and discuss with neurointervention.";
-  })();
+  }, [aspectsScore]);
 
-  const guardHipaaText = (value: string, field: string, onSafe: (clean: string) => void) => {
+  // Memoize HIPAA guard function
+  const guardHipaaText = useCallback((value: string, field: string, onSafe: (clean: string) => void) => {
     const issue = findHipaaIssue(value);
     if (issue) {
       setHipaaWarning(`${field}: ${issue}. Keep entries de-identified (no names, MRN, phone, email).`);
@@ -325,37 +371,37 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     }
     setHipaaWarning(null);
     onSafe(value);
-  };
+  }, []);
 
-  // Update functions
-  const updateScores = (patch: Partial<ClinicalScoresType>) => {
+  // Memoize update functions to prevent unnecessary re-renders
+  const updateScores = useCallback((patch: Partial<ClinicalScoresType>) => {
     onUpdate({ clinicalScores: { ...scores, ...patch } });
-  };
+  }, [scores, onUpdate]);
 
-  const updateSAH = (patch: Partial<SAHScores>) => {
+  const updateSAH = useCallback((patch: Partial<SAHScores>) => {
     updateScores({ sah: { ...scores.sah, ...patch } });
-  };
+  }, [scores.sah, updateScores]);
 
-  const updateStroke = (patch: Partial<StrokeScores>) => {
+  const updateStroke = useCallback((patch: Partial<StrokeScores>) => {
     updateScores({ stroke: { ...scores.stroke, ...patch } });
-  };
+  }, [scores.stroke, updateScores]);
 
-  const updateICH = (patch: Partial<ICHScores>) => {
+  const updateICH = useCallback((patch: Partial<ICHScores>) => {
     updateScores({ ich: { ...scores.ich, ...patch } });
-  };
+  }, [scores.ich, updateScores]);
 
-  const updateNeuro = (patch: Partial<typeof neuro>) => {
+  const updateNeuro = useCallback((patch: Partial<typeof neuro>) => {
     onUpdate({ neuroExam: { ...neuro, ...patch } });
-  };
+  }, [neuro, onUpdate]);
 
-  const updateMotorStrength = (limb: "lue" | "rue" | "lle" | "rle", value: number) => {
+  const updateMotorStrength = useCallback((limb: "lue" | "rue" | "lle" | "rle", value: number) => {
     updateNeuro({
       motorStrength: {
         ...neuro.motorStrength,
         [limb]: value as 0 | 1 | 2 | 3 | 4 | 5,
       },
     });
-  };
+  }, [neuro.motorStrength, updateNeuro]);
 
   return (
     <div style={{ display: "grid", gap: 20 }}>

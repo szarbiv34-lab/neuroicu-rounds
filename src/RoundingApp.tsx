@@ -9,6 +9,40 @@ type Id = string;
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// Memoized CollapsibleSection to prevent unnecessary re-renders
+const CollapsibleSection = React.memo(({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  return (
+    <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, background: "#f8fafc" }}>
+      <button
+        onClick={() => setCollapsed((prev) => !prev)}
+        style={{
+          width: "100%",
+          background: "none",
+          border: "none",
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontWeight: 600,
+          fontSize: 13,
+          color: "#0f172a",
+          cursor: "pointer",
+        }}
+        aria-expanded={!collapsed}
+      >
+        <span>{collapsed ? "▸" : "▾"}</span>
+        <span>{title}</span>
+      </button>
+      {!collapsed && (
+        <div style={{ padding: 12, borderTop: "1px solid #e2e8f0", background: "#fff", borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+});
+
 const NEURO_CHECKLIST = [
   "Neuro exam documented",
   "ICP/CPP target",
@@ -283,114 +317,121 @@ function toNoteText(s: RoundingSheet) {
   return lines.join("\n");
 }
 
-// Demo patients for NeuroICU
-const DEMO_PATIENTS: RoundingSheet[] = [
-  {
-    ...buildBlank("James Wilson"),
-    room: "NICU-4",
-    diagnosis: "SAH - ruptured MCA aneurysm",
-    diagnosisType: "sah",
-    dayOfAdmit: 5,
-    oneLiner: "POD5 clipping, bleed day 5, monitoring for vasospasm",
-    neuroExam: {
-      gcsEye: 4, gcsVerbal: 5, gcsMotor: 6,
-      admissionGcsEye: 3, admissionGcsVerbal: 4, admissionGcsMotor: 5,
-      pupils: { left: { size: 3, reactive: true }, right: { size: 3, reactive: true } },
-      motorExam: "Full strength bilateral",
-      motorStrength: { lue: 5, rue: 5, lle: 5, rle: 5 },
-      sedation: "RASS 0",
-      icp: 12, cpp: 72,
-      evdDrain: "Set at 15cm, draining clear CSF",
-    },
-    clinicalScores: {
-      sah: {
-        huntHess: 2,
-        modifiedFisher: 3,
-        ruptureDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 4 days ago
+// Move DEMO_PATIENTS outside component to avoid recreation on every render
+// This is a significant performance optimization
+const createDemoPatients = (): RoundingSheet[] => {
+  const ruptureDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  return [
+    {
+      ...buildBlank("James Wilson"),
+      room: "NICU-4",
+      diagnosis: "SAH - ruptured MCA aneurysm",
+      diagnosisType: "sah",
+      dayOfAdmit: 5,
+      oneLiner: "POD5 clipping, bleed day 5, monitoring for vasospasm",
+      neuroExam: {
+        gcsEye: 4, gcsVerbal: 5, gcsMotor: 6,
+        admissionGcsEye: 3, admissionGcsVerbal: 4, admissionGcsMotor: 5,
+        pupils: { left: { size: 3, reactive: true }, right: { size: 3, reactive: true } },
+        motorExam: "Full strength bilateral",
+        motorStrength: { lue: 5, rue: 5, lle: 5, rle: 5 },
+        sedation: "RASS 0",
+        icp: 12, cpp: 72,
+        evdDrain: "Set at 15cm, draining clear CSF",
       },
-    },
-    vitals: { map: 85, hr: 72, spo2: 98, vent: "2L NC" },
-    drips: "Nimodipine 60mg q4h",
-    linesTubes: "EVD, A-line, PIV x2",
-    problems: [
-      { id: uid(), title: "SAH - Hunt Hess 2, Fisher 3", assessment: "POD5, bleed day 5, peak vasospasm window", plan: "- Continue nimodipine\n- Daily TCDs\n- Maintain euvolemia" },
-    ],
-  },
-  {
-    ...buildBlank("Maria Garcia"),
-    room: "NICU-7",
-    diagnosis: "Large R MCA stroke",
-    diagnosisType: "stroke",
-    dayOfAdmit: 2,
-    oneLiner: "s/p thrombectomy, TICI 2b, now with malignant edema",
-    neuroExam: {
-      gcsEye: 3, gcsVerbal: 2, gcsMotor: 5,
-      admissionGcsEye: 2, admissionGcsVerbal: 1, admissionGcsMotor: 4,
-      pupils: { left: { size: 3, reactive: true }, right: { size: 4, reactive: false } },
-      motorExam: "L sided weakness 0/5, R intact",
-      motorStrength: { lue: 0, rue: 5, lle: 0, rle: 5 },
-      sedation: "RASS -2",
-    },
-    clinicalScores: {
-      stroke: {
-        nihss: 18,
-        aspects: 6,
-        territory: "R MCA M1",
-        thrombectomy: true,
-        ticiScore: "2b",
-        lastKnownWell: "2 days ago, 6:00 AM",
-        tpaGiven: true,
-        strokeType: "ischemic",
+      clinicalScores: {
+        sah: {
+          huntHess: 2,
+          modifiedFisher: 3,
+          ruptureDate,
+        },
       },
+      vitals: { map: 85, hr: 72, spo2: 98, vent: "2L NC" },
+      drips: "Nimodipine 60mg q4h",
+      linesTubes: "EVD, A-line, PIV x2",
+      problems: [
+        { id: uid(), title: "SAH - Hunt Hess 2, Fisher 3", assessment: "POD5, bleed day 5, peak vasospasm window", plan: "- Continue nimodipine\n- Daily TCDs\n- Maintain euvolemia" },
+      ],
     },
-    vitals: { map: 90, hr: 88, spo2: 96, vent: "AC/VC 500/14/40%/5" },
-    drips: "Propofol 20mcg/kg/min, 3% NaCl",
-    linesTubes: "ETT, OGT, Foley, R IJ CVC, A-line",
-    problems: [
-      { id: uid(), title: "Malignant MCA edema", assessment: "Worsening edema on repeat CT, R pupil sluggish", plan: "- HOB 30°\n- 3% NaCl bolus PRN\n- Neurosurgery consult for hemicraniectomy" },
-    ],
-  },
-  {
-    ...buildBlank("Priya Patel"),
-    room: "NICU-2",
-    diagnosis: "Left basal ganglia ICH with IVH",
-    diagnosisType: "ich",
-    dayOfAdmit: 1,
-    oneLiner: "Hypertensive emergency, large deep hemorrhage requiring EVD",
-    neuroExam: {
-      gcsEye: 2, gcsVerbal: 2, gcsMotor: 4,
-      admissionGcsEye: 3, admissionGcsVerbal: 2, admissionGcsMotor: 5,
-      pupils: { left: { size: 5, reactive: true }, right: { size: 4, reactive: true } },
-      motorExam: "R hemiplegia 0/5, L follows",
-      motorStrength: { lue: 4, rue: 0, lle: 4, rle: 0 },
-      sedation: "Propofol 15mcg/kg/min",
-      icp: 20,
-      cpp: 60,
-      evdDrain: "EVD @ 10cm, draining blood-tinged CSF",
-    },
-    clinicalScores: {
-      ich: {
-        gcsScore: 8,
-        ichVolume: 42,
-        ichLocation: "deep",
-        ivhPresent: true,
-        infratentorial: false,
-        age80Plus: false,
-        functionalOutcome: "Family aware of ~70% mortality; reassess goals if no improvement in 72h.",
+    {
+      ...buildBlank("Maria Garcia"),
+      room: "NICU-7",
+      diagnosis: "Large R MCA stroke",
+      diagnosisType: "stroke",
+      dayOfAdmit: 2,
+      oneLiner: "s/p thrombectomy, TICI 2b, now with malignant edema",
+      neuroExam: {
+        gcsEye: 3, gcsVerbal: 2, gcsMotor: 5,
+        admissionGcsEye: 2, admissionGcsVerbal: 1, admissionGcsMotor: 4,
+        pupils: { left: { size: 3, reactive: true }, right: { size: 4, reactive: false } },
+        motorExam: "L sided weakness 0/5, R intact",
+        motorStrength: { lue: 0, rue: 5, lle: 0, rle: 5 },
+        sedation: "RASS -2",
       },
+      clinicalScores: {
+        stroke: {
+          nihss: 18,
+          aspects: 6,
+          territory: "R MCA M1",
+          thrombectomy: true,
+          ticiScore: "2b",
+          lastKnownWell: "2 days ago, 6:00 AM",
+          tpaGiven: true,
+          strokeType: "ischemic",
+        },
+      },
+      vitals: { map: 90, hr: 88, spo2: 96, vent: "AC/VC 500/14/40%/5" },
+      drips: "Propofol 20mcg/kg/min, 3% NaCl",
+      linesTubes: "ETT, OGT, Foley, R IJ CVC, A-line",
+      problems: [
+        { id: uid(), title: "Malignant MCA edema", assessment: "Worsening edema on repeat CT, R pupil sluggish", plan: "- HOB 30°\n- 3% NaCl bolus PRN\n- Neurosurgery consult for hemicraniectomy" },
+      ],
     },
-    vitals: { map: 110, hr: 62, spo2: 99, vent: "SIMV/PS 450/16/35%/8" },
-    drips: "Nicardipine 7mg/hr, Propofol 15mcg/kg/min",
-    linesTubes: "EVD, A-line, Foley, PIV x2",
-    problems: [
-      { id: uid(), title: "Large deep ICH", assessment: "ICH score elevated due to volume and IVH", plan: "- Maintain SBP 140-160\n- Scheduled hypertonic 3%\n- EVD draining q1h" },
-    ],
-  },
-];
+    {
+      ...buildBlank("Priya Patel"),
+      room: "NICU-2",
+      diagnosis: "Left basal ganglia ICH with IVH",
+      diagnosisType: "ich",
+      dayOfAdmit: 1,
+      oneLiner: "Hypertensive emergency, large deep hemorrhage requiring EVD",
+      neuroExam: {
+        gcsEye: 2, gcsVerbal: 2, gcsMotor: 4,
+        admissionGcsEye: 3, admissionGcsVerbal: 2, admissionGcsMotor: 5,
+        pupils: { left: { size: 5, reactive: true }, right: { size: 4, reactive: true } },
+        motorExam: "R hemiplegia 0/5, L follows",
+        motorStrength: { lue: 4, rue: 0, lle: 4, rle: 0 },
+        sedation: "Propofol 15mcg/kg/min",
+        icp: 20,
+        cpp: 60,
+        evdDrain: "EVD @ 10cm, draining blood-tinged CSF",
+      },
+      clinicalScores: {
+        ich: {
+          gcsScore: 8,
+          ichVolume: 42,
+          ichLocation: "deep",
+          ivhPresent: true,
+          infratentorial: false,
+          age80Plus: false,
+          functionalOutcome: "Family aware of ~70% mortality; reassess goals if no improvement in 72h.",
+        },
+      },
+      vitals: { map: 110, hr: 62, spo2: 99, vent: "SIMV/PS 450/16/35%/8" },
+      drips: "Nicardipine 7mg/hr, Propofol 15mcg/kg/min",
+      linesTubes: "EVD, A-line, Foley, PIV x2",
+      problems: [
+        { id: uid(), title: "Large deep ICH", assessment: "ICH score elevated due to volume and IVH", plan: "- Maintain SBP 140-160\n- Scheduled hypertonic 3%\n- EVD draining q1h" },
+      ],
+    },
+  ];
+};
+
+// Cache initial demo patients
+const INITIAL_DEMO_PATIENTS = createDemoPatients();
 
 export default function RoundingApp() {
-  const [sheets, setSheets] = useState<RoundingSheet[]>(DEMO_PATIENTS);
-  const [activeId, setActiveId] = useState<Id>(sheets[0].id);
+  const [sheets, setSheets] = useState<RoundingSheet[]>(INITIAL_DEMO_PATIENTS);
+  const [activeId, setActiveId] = useState<Id>(INITIAL_DEMO_PATIENTS[0].id);
   const [activeTab, setActiveTab] = useState<TabKey>("scores");
   
   const active = useMemo(() => sheets.find((x) => x.id === activeId)!, [sheets, activeId]);
@@ -398,7 +439,11 @@ export default function RoundingApp() {
   const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [autoTemplate, setAutoTemplate] = useState(true);
   const activeTemplate = useMemo(() => TEMPLATES.find((t) => t.id === templateId)!, [templateId]);
-  const smartphrasePreview = useMemo(() => renderSmartPhrase(activeTemplate, active), [activeTemplate, active]);
+  
+  // Optimize smartphrase preview to only recompute when template or critical sheet data changes
+  const smartphrasePreview = useMemo(() => {
+    return renderSmartPhrase(activeTemplate, active);
+  }, [activeTemplate, active.neuroExam, active.vitals, active.problems, active.tasks, active.checklist, active.dateISO, active.patientName, active.room, active.diagnosis, active.dayOfAdmit, active.oneLiner, active.drips, active.linesTubes, active.labs, active.imaging]);
 
   useEffect(() => {
     if (!autoTemplate) return;
@@ -553,7 +598,10 @@ export default function RoundingApp() {
     return () => window.removeEventListener("keydown", handler);
   }, [activeTab, addProblem, addTask, copySmartPhrase]);
 
-  const sortedSheets = useMemo(() => [...sheets].sort((a, b) => b.updatedAt - a.updatedAt), [sheets]);
+  // Optimize sorting to only recompute when sheets length or updatedAt values change
+  const sortedSheets = useMemo(() => {
+    return [...sheets].sort((a, b) => b.updatedAt - a.updatedAt);
+  }, [sheets.length, sheets.map(s => s.updatedAt).join(',')]);
 
   const gcsTotal = useMemo(() => {
     const ne = active.neuroExam || {};
@@ -1305,37 +1353,4 @@ type CollapsibleProps = {
   title: string;
   defaultCollapsed?: boolean;
   children: React.ReactNode;
-};
-
-const CollapsibleSection = ({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  return (
-    <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, background: "#f8fafc" }}>
-      <button
-        onClick={() => setCollapsed((prev) => !prev)}
-        style={{
-          width: "100%",
-          background: "none",
-          border: "none",
-          padding: "10px 14px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          fontWeight: 600,
-          fontSize: 13,
-          color: "#0f172a",
-          cursor: "pointer",
-        }}
-        aria-expanded={!collapsed}
-      >
-        <span>{collapsed ? "▸" : "▾"}</span>
-        <span>{title}</span>
-      </button>
-      {!collapsed && (
-        <div style={{ padding: 12, borderTop: "1px solid #e2e8f0", background: "#fff", borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
-          {children}
-        </div>
-      )}
-    </div>
-  );
 };
