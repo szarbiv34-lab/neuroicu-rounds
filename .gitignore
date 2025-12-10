@@ -5,5 +5,8 @@ node_modules/
 package.json
 package-lock.json
 
+# Build artifacts
+dist/
+
 # Test files
 performanceTest.ts
