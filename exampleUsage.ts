@@ -1,6 +1,7 @@
 // exampleUsage.ts
 // Demonstrates how to use the SmartPhrase engine programmatically
 // This example shows rendering a custom template with sample patient data
+// Note: This file is used by CI to validate the SmartPhrase engine functionality
 
 import { renderSmartPhrase } from "./src/smartphraseEngine";
 
