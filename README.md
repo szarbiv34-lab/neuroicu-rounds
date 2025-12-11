@@ -33,6 +33,7 @@ A comprehensive neurological intensive care unit (Neuro ICU) rounding applicatio
 - [GitHub Pages Deployment](#github-pages-deployment)
 - [Usage Guide](#-usage-guide)
 - [Project Structure](#-project-structure)
+- [Documentation](#-documentation)
 - [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)
 
@@ -173,6 +174,17 @@ neuroicu-rounds/
 - **`ClinicalScores.tsx`**: Interactive calculators with clinical reference data (e.g., mortality tables)
 - **`RoundingApp.tsx`**: Main UI with tabs for scores, exam, data, and plan
 - **`exampleUsage.ts`**: Demonstrates how to use the SmartPhrase engine programmatically
+
+## 📚 Documentation
+
+Comprehensive guides are available in the `docs/` directory:
+
+- **[Quick Start Guide](./docs/QUICKSTART.md)** - Get started in 5 minutes
+- **[User Guide](./docs/USER_GUIDE.md)** - Detailed usage instructions and workflows
+- **[Architecture Overview](./docs/ARCHITECTURE.md)** - Technical architecture and design decisions
+- **[Customization Guide](./docs/CUSTOMIZATION.md)** - How to customize templates, scores, and UI
+- **[FAQ](./docs/FAQ.md)** - Frequently asked questions
+- **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 
 ## 🤝 Contributing
 
