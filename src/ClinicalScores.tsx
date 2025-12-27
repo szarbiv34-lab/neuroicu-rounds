@@ -1375,7 +1375,9 @@ function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps) {
 }
 
 // Memoize the component to prevent unnecessary re-renders when props haven't changed
-export default React.memo(ClinicalScores);
+const MemoizedClinicalScores = React.memo(ClinicalScores);
+MemoizedClinicalScores.displayName = 'ClinicalScores';
+export default MemoizedClinicalScores;
 
 // ============================================================================
 // STYLES

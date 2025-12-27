@@ -537,15 +537,13 @@ export default function RoundingApp() {
   const handleAutoTemplateToggle = useCallback((checked: boolean) => {
     setAutoTemplate(checked);
     if (checked) {
-      setSheets((prev) => {
-        const currentActive = prev.find((s) => s.id === activeId);
-        if (currentActive) {
-          setTemplateId(getTemplateForDiagnosis(currentActive.diagnosisType));
-        }
-        return prev;
-      });
+      // Use the active object directly since it's already memoized
+      const currentActive = sheets.find((s) => s.id === activeId);
+      if (currentActive) {
+        setTemplateId(getTemplateForDiagnosis(currentActive.diagnosisType));
+      }
     }
-  }, [activeId]);
+  }, [activeId, sheets]);
 
   const addPatient = useCallback(() => {
     const s = buildBlank(`Patient ${sheets.length + 1}`);
@@ -1413,3 +1411,5 @@ const CollapsibleSection = React.memo(({ title, defaultCollapsed = false, childr
     </div>
   );
 });
+
+CollapsibleSection.displayName = 'CollapsibleSection';
