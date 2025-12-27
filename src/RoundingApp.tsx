@@ -446,62 +446,107 @@ export default function RoundingApp() {
   }, [activeId]);
 
   const updateNeuroExam = useCallback((patch: Partial<NeuroExam>) => {
-    updateActive({ neuroExam: { ...active.neuroExam, ...patch } });
-  }, [active.neuroExam, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, neuroExam: { ...s.neuroExam, ...patch }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const updateVitals = useCallback((patch: Partial<RoundingSheet["vitals"]>) => {
-    updateActive({ vitals: { ...active.vitals, ...patch } });
-  }, [active.vitals, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, vitals: { ...s.vitals, ...patch }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const toggleChecklist = useCallback((key: string) => {
-    updateActive({ checklist: { ...active.checklist, [key]: !active.checklist[key] } });
-  }, [active.checklist, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, checklist: { ...s.checklist, [key]: !s.checklist[key] }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const addProblem = useCallback(() => {
-    updateActive({
-      problems: [
-        ...active.problems,
-        { id: uid(), title: "New problem", assessment: "", plan: "" },
-      ],
-    });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        problems: [...s.problems, { id: uid(), title: "New problem", assessment: "", plan: "" }],
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const updateProblem = useCallback((id: Id, patch: Partial<Problem>) => {
-    updateActive({ problems: active.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const removeProblem = useCallback((id: Id) => {
-    updateActive({ problems: active.problems.filter((p) => p.id !== id) });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        problems: s.problems.filter((p) => p.id !== id),
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const addTask = useCallback(() => {
-    updateActive({ tasks: [...active.tasks, { id: uid(), text: "New task", done: false, due: "Today" }] });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }],
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const updateTask = useCallback((id: Id, patch: Partial<Task>) => {
-    updateActive({ tasks: active.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const removeTask = useCallback((id: Id) => {
-    updateActive({ tasks: active.tasks.filter((t) => t.id !== id) });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        tasks: s.tasks.filter((t) => t.id !== id),
+        updatedAt: Date.now() 
+      } : s))
+    );
+  }, [activeId]);
 
   const handleDiagnosisTypeChange = useCallback((value: DiagnosisType | "") => {
     const nextType = (value || undefined) as DiagnosisType | undefined;
-    const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
-    if (nextType) {
-      Object.assign(patch, buildDiagnosisPrefillPatch(active, nextType));
-    }
-    updateActive(patch);
-  }, [active, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => {
+        if (s.id !== activeId) return s;
+        const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
+        if (nextType) {
+          Object.assign(patch, buildDiagnosisPrefillPatch(s, nextType));
+        }
+        return { ...s, ...patch, updatedAt: Date.now() };
+      })
+    );
+  }, [activeId]);
 
   const handleDiagnosisPrefill = useCallback(() => {
-    if (!active.diagnosisType) return;
-    const patch = buildDiagnosisPrefillPatch(active, active.diagnosisType);
-    if (Object.keys(patch).length) {
-      updateActive(patch);
-    }
-  }, [active, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => {
+        if (s.id !== activeId || !s.diagnosisType) return s;
+        const patch = buildDiagnosisPrefillPatch(s, s.diagnosisType);
+        if (!Object.keys(patch).length) return s;
+        return { ...s, ...patch, updatedAt: Date.now() };
+      })
+    );
+  }, [activeId]);
 
 
   const handleTemplateChange = useCallback((nextId: string) => {
@@ -1230,7 +1275,9 @@ export default function RoundingApp() {
   );
 }
 
-// Styles
+// ============================================================================
+// STYLES - Defined at module level to prevent recreation on every render
+// ============================================================================
 const card: React.CSSProperties = {
   background: "#fff",
   border: "1px solid #e2e8f0",
@@ -1326,18 +1373,25 @@ const btnDanger: React.CSSProperties = {
   background: "#fef2f2",
 };
 
-const chip = (on: boolean): React.CSSProperties => ({
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: on ? "1px solid #16a34a" : "1px solid #e2e8f0",
-  background: on ? "#dcfce7" : "#fff",
-  color: on ? "#166534" : "#475569",
-  fontSize: 12,
-  fontWeight: 500,
-  textAlign: "left",
-  cursor: "pointer",
-  transition: "all 0.15s",
-});
+// Memoized chip style creator with cache for common states
+const chipStyleCache = new Map<boolean, React.CSSProperties>();
+const chip = (on: boolean): React.CSSProperties => {
+  if (!chipStyleCache.has(on)) {
+    chipStyleCache.set(on, {
+      padding: "10px 12px",
+      borderRadius: 10,
+      border: on ? "1px solid #16a34a" : "1px solid #e2e8f0",
+      background: on ? "#dcfce7" : "#fff",
+      color: on ? "#166534" : "#475569",
+      fontSize: 12,
+      fontWeight: 500,
+      textAlign: "left",
+      cursor: "pointer",
+      transition: "all 0.15s",
+    });
+  }
+  return chipStyleCache.get(on)!;
+};
 
 const hotkeyHint: React.CSSProperties = {
   fontSize: 11,

@@ -106,6 +106,7 @@ const TOKEN_PATTERN = new RegExp(
 
 /**
  * Renders a SmartPhrase template by replacing all token placeholders with patient data.
+ * Uses efficient single-pass replacement with pre-built token map.
  * 
  * @param template - The SmartPhrase template containing token placeholders
  * @param sheet - The patient rounding sheet with all clinical data
@@ -176,12 +177,10 @@ export function renderSmartPhrase(template: SmartPhraseTemplate, sheet: Rounding
     "@GOALS@": "-",                               // Goals of care - not yet implemented
   };
 
-  // Replace all tokens in the template body
-  let out = template.body;
-  out = out.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
+  // Efficient single-pass token replacement using pre-compiled regex
+  // Replace all tokens in one operation to minimize string manipulation
+  const out = template.body.replace(TOKEN_PATTERN, (match) => tokens[match] || match);
   
   // Normalize line endings and remove excessive blank lines
-  out = out.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  
-  return out;
+  return out.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }

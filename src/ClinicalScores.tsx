@@ -1,5 +1,5 @@
 // ClinicalScores.tsx - Neuro ICU Clinical Decision Tools
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import type { 
   RoundingSheet, 
   HuntHessGrade, 
@@ -7,7 +7,6 @@ import type {
   SAHScores,
   StrokeScores,
   ICHScores,
-  ClinicalScores as ClinicalScoresType
 } from "./types";
 
 // ============================================================================
@@ -39,7 +38,7 @@ const HUNT_HESS_DESCRIPTIONS: Record<HuntHessGrade, { description: string; morta
     mortality: "~77%",
     criteria: "Deep coma, decerebrate posturing, moribund appearance"
   },
-};
+} as const;
 
 // ============================================================================
 // MODIFIED FISHER SCALE
@@ -70,7 +69,7 @@ const MODIFIED_FISHER_DESCRIPTIONS: Record<ModifiedFisherGrade, { description: s
     vasospasmRisk: "40%",
     criteria: "Focal or diffuse thick SAH with IVH"
   },
-};
+} as const;
 
 // ============================================================================
 // ICH SCORE + NIHSS LOOKUPS
@@ -83,13 +82,13 @@ const ICH_MORTALITY_TABLE: Record<number, string> = {
   4: "97%",
   5: "100%",
   6: "100%",
-};
+} as const;
 
 const NIHSS_SEVERITY = [
   { max: 5, label: "Minor", color: "#16a34a", bg: "#dcfce7" },
   { max: 15, label: "Moderate", color: "#f97316", bg: "#ffedd5" },
   { max: Infinity, label: "Severe", color: "#dc2626", bg: "#fee2e2" },
-];
+] as const;
 
 // ============================================================================
 // GCS SCALE DESCRIPTIONS
@@ -99,7 +98,7 @@ const GCS_EYE_DESCRIPTIONS = {
   2: "Eye opening to pain",
   3: "Eye opening to verbal command",
   4: "Eyes open spontaneously",
-};
+} as const;
 
 const GCS_VERBAL_DESCRIPTIONS = {
   1: "No verbal response",
@@ -107,7 +106,7 @@ const GCS_VERBAL_DESCRIPTIONS = {
   3: "Inappropriate words",
   4: "Confused",
   5: "Oriented",
-};
+} as const;
 
 const GCS_MOTOR_DESCRIPTIONS = {
   1: "No motor response",
@@ -116,7 +115,7 @@ const GCS_MOTOR_DESCRIPTIONS = {
   4: "Withdrawal from pain",
   5: "Localizes pain",
   6: "Obeys commands",
-};
+} as const;
 
 // ============================================================================
 // MOTOR STRENGTH SCALE
@@ -128,7 +127,7 @@ const MOTOR_STRENGTH_DESCRIPTIONS = {
   3: "Movement against gravity (3/5)",
   4: "Movement against some resistance (4/5)",
   5: "Normal strength (5/5)",
-};
+} as const;
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -249,6 +248,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
   const showICH = noDxType || sheet.diagnosisType === "ich" || diagnosisText.includes("ich") || diagnosisText.includes("intracerebral") || diagnosisText.includes("hemorrhage");
   const [hipaaWarning, setHipaaWarning] = useState<string | null>(null);
 
+  // Build section registry once per diagnosis type changes
   const sectionRegistry = useMemo(() => ([
     { id: "gcs", label: "GCS", required: true, condition: true },
     { id: "sah", label: "SAH scales", required: false, condition: showSAH },
@@ -278,46 +278,62 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     });
   }, [sectionRegistry]);
 
-  // Calculate current GCS
+  // Calculate current GCS - memoized to prevent recalculation
   const currentGcs = useMemo(() => {
-    const e = neuro.gcsEye || 0;
-    const v = neuro.gcsVerbal || 0;
-    const m = neuro.gcsMotor || 0;
-    return e + v + m;
+    return (neuro.gcsEye || 0) + (neuro.gcsVerbal || 0) + (neuro.gcsMotor || 0);
   }, [neuro.gcsEye, neuro.gcsVerbal, neuro.gcsMotor]);
 
-  // Calculate admission GCS
+  // Calculate admission GCS - memoized to prevent recalculation
   const admissionGcs = useMemo(() => {
-    const e = neuro.admissionGcsEye || 0;
-    const v = neuro.admissionGcsVerbal || 0;
-    const m = neuro.admissionGcsMotor || 0;
-    return e + v + m;
+    return (neuro.admissionGcsEye || 0) + (neuro.admissionGcsVerbal || 0) + (neuro.admissionGcsMotor || 0);
   }, [neuro.admissionGcsEye, neuro.admissionGcsVerbal, neuro.admissionGcsMotor]);
 
-  // Calculate bleed day for SAH
+  // Calculate bleed day for SAH - only when rupture date changes
   const bleedDay = useMemo(() => {
     return calculateBleedDay(scores.sah?.ruptureDate);
   }, [scores.sah?.ruptureDate]);
 
-  const ichScoreInfo = useMemo(() => computeIchScore(scores.ich, currentGcs || admissionGcs), [scores.ich, currentGcs, admissionGcs]);
-  const nihssTier = useMemo(() => getNihssCategory(scores.stroke?.nihss), [scores.stroke?.nihss]);
-  const ichTier = ichScoreInfo.applied ? getIchSeverity(ichScoreInfo.score) : null;
-  const ichMortality = ichScoreInfo.applied ? (ICH_MORTALITY_TABLE[ichScoreInfo.score] ?? "—") : null;
+  // Compute ICH score - memoized with proper dependencies
+  const ichScoreInfo = useMemo(() => 
+    computeIchScore(scores.ich, currentGcs || admissionGcs), 
+    [scores.ich, currentGcs, admissionGcs]
+  );
+  
+  // Compute NIHSS tier - memoized
+  const nihssTier = useMemo(() => 
+    getNihssCategory(scores.stroke?.nihss), 
+    [scores.stroke?.nihss]
+  );
+  
+  // Compute ICH tier and mortality - memoized
+  const ichTier = useMemo(() => 
+    ichScoreInfo.applied ? getIchSeverity(ichScoreInfo.score) : null,
+    [ichScoreInfo.applied, ichScoreInfo.score]
+  );
+  
+  const ichMortality = useMemo(() => 
+    ichScoreInfo.applied ? (ICH_MORTALITY_TABLE[ichScoreInfo.score] ?? "—") : null,
+    [ichScoreInfo.applied, ichScoreInfo.score]
+  );
+
+  // Compute ASPECTS badge and guidance - memoized
   const aspectsScore = scores.stroke?.aspects;
-  const aspectsBadge = (() => {
+  const aspectsBadge = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return { label: "Awaiting score", color: "#64748b", bg: "#f1f5f9" };
     if (aspectsScore <= 5) return { label: "Large core", color: "#b91c1c", bg: "#fee2e2" };
     if (aspectsScore >= 7) return { label: "Favorable", color: "#15803d", bg: "#dcfce7" };
     return { label: "Borderline", color: "#b45309", bg: "#ffedd5" };
-  })();
-  const aspectsGuidance = (() => {
+  }, [aspectsScore]);
+  
+  const aspectsGuidance = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return "Document ASPECTS to quantify early ischemic change.";
     if (aspectsScore <= 5) return "Large core (>1/3 MCA) — focus on edema control and early hemicraniectomy planning.";
     if (aspectsScore >= 7) return "Favorable core — thrombectomy candidate if LVO and within 24h window.";
     return "Borderline core — obtain perfusion imaging for penumbra estimate and discuss with neurointervention.";
-  })();
+  }, [aspectsScore]);
 
-  const guardHipaaText = (value: string, field: string, onSafe: (clean: string) => void) => {
+  // HIPAA validation with useCallback
+  const guardHipaaText = useCallback((value: string, field: string, onSafe: (clean: string) => void) => {
     const issue = findHipaaIssue(value);
     if (issue) {
       setHipaaWarning(`${field}: ${issue}. Keep entries de-identified (no names, MRN, phone, email).`);
@@ -325,37 +341,36 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     }
     setHipaaWarning(null);
     onSafe(value);
-  };
+  }, []);
 
-  // Update functions
-  const updateScores = (patch: Partial<ClinicalScoresType>) => {
-    onUpdate({ clinicalScores: { ...scores, ...patch } });
-  };
+  // Update functions - all memoized with useCallback
+  const updateSAH = useCallback((patch: Partial<SAHScores>) => {
+    onUpdate({ clinicalScores: { ...sheet.clinicalScores, sah: { ...sheet.clinicalScores?.sah, ...patch } } });
+  }, [onUpdate, sheet.clinicalScores]);
 
-  const updateSAH = (patch: Partial<SAHScores>) => {
-    updateScores({ sah: { ...scores.sah, ...patch } });
-  };
+  const updateStroke = useCallback((patch: Partial<StrokeScores>) => {
+    onUpdate({ clinicalScores: { ...sheet.clinicalScores, stroke: { ...sheet.clinicalScores?.stroke, ...patch } } });
+  }, [onUpdate, sheet.clinicalScores]);
 
-  const updateStroke = (patch: Partial<StrokeScores>) => {
-    updateScores({ stroke: { ...scores.stroke, ...patch } });
-  };
+  const updateICH = useCallback((patch: Partial<ICHScores>) => {
+    onUpdate({ clinicalScores: { ...sheet.clinicalScores, ich: { ...sheet.clinicalScores?.ich, ...patch } } });
+  }, [onUpdate, sheet.clinicalScores]);
 
-  const updateICH = (patch: Partial<ICHScores>) => {
-    updateScores({ ich: { ...scores.ich, ...patch } });
-  };
+  const updateNeuro = useCallback((patch: Partial<typeof neuro>) => {
+    onUpdate({ neuroExam: { ...sheet.neuroExam, ...patch } });
+  }, [onUpdate, sheet.neuroExam]);
 
-  const updateNeuro = (patch: Partial<typeof neuro>) => {
-    onUpdate({ neuroExam: { ...neuro, ...patch } });
-  };
-
-  const updateMotorStrength = (limb: "lue" | "rue" | "lle" | "rle", value: number) => {
-    updateNeuro({
-      motorStrength: {
-        ...neuro.motorStrength,
-        [limb]: value as 0 | 1 | 2 | 3 | 4 | 5,
+  const updateMotorStrength = useCallback((limb: "lue" | "rue" | "lle" | "rle", value: number) => {
+    onUpdate({
+      neuroExam: {
+        ...sheet.neuroExam,
+        motorStrength: {
+          ...sheet.neuroExam?.motorStrength,
+          [limb]: value as 0 | 1 | 2 | 3 | 4 | 5,
+        },
       },
     });
-  };
+  }, [onUpdate, sheet.neuroExam]);
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -870,7 +885,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
                 <label style={label}>Functional outcome / GOC notes</label>
                 <textarea
                   value={scores.ich?.functionalOutcome ?? ""}
-                  onChange={(e) => guardHipaaText(e.target.value, "ICH outcome notes", (clean) => updateICH({ functionalOutcome: clean }))}
+                  onChange={(e) => guardHipaaText(e.target.value, "ICH outcome notes", (clean: string) => updateICH({ functionalOutcome: clean }))}
                   style={{ ...input, minHeight: 70, resize: "vertical" }}
                   placeholder="eg. Discuss comfort-focused care if score ≥4"
                   maxLength={200}
@@ -1254,7 +1269,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
             <label style={label}>Free Text Summary (no identifiers)</label>
             <input
               value={neuro.motorExam ?? ""}
-              onChange={(e) => guardHipaaText(e.target.value, "Motor summary", (clean) => updateNeuro({ motorExam: clean }))}
+              onChange={(e) => guardHipaaText(e.target.value, "Motor summary", (clean: string) => updateNeuro({ motorExam: clean }))}
               style={input}
               placeholder="e.g., Full strength bilateral or L hemiparesis 3/5"
               maxLength={200}
@@ -1375,7 +1390,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
 }
 
 // ============================================================================
-// STYLES
+// STYLES - Defined at module level to prevent recreation on every render
 // ============================================================================
 const hipaaBox: React.CSSProperties = {
   background: "#f8fafc",
@@ -1429,31 +1444,46 @@ const select: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const motorBox = (strength?: number): React.CSSProperties => ({
-  padding: "12px 16px",
-  borderRadius: 10,
-  background: strength === undefined ? "#f1f5f9" : 
-              strength === 5 ? "#f0fdf4" : 
-              strength >= 3 ? "#fffbeb" : "#fef2f2",
-  color: strength === undefined ? "#94a3b8" :
-         strength === 5 ? "#16a34a" :
-         strength >= 3 ? "#f59e0b" : "#dc2626",
-  fontWeight: 700,
-  fontSize: 16,
-  border: strength === undefined ? "1px solid #e2e8f0" :
-          strength === 5 ? "1px solid #bbf7d0" :
-          strength >= 3 ? "1px solid #fef3c7" : "1px solid #fecaca",
-});
+// Memoized motorBox style creator with cache
+const motorBoxCache = new Map<number | undefined, React.CSSProperties>();
+const motorBox = (strength?: number): React.CSSProperties => {
+  if (!motorBoxCache.has(strength)) {
+    motorBoxCache.set(strength, {
+      padding: "12px 16px",
+      borderRadius: 10,
+      background: strength === undefined ? "#f1f5f9" : 
+                  strength === 5 ? "#f0fdf4" : 
+                  strength >= 3 ? "#fffbeb" : "#fef2f2",
+      color: strength === undefined ? "#94a3b8" :
+             strength === 5 ? "#16a34a" :
+             strength >= 3 ? "#f59e0b" : "#dc2626",
+      fontWeight: 700,
+      fontSize: 16,
+      border: strength === undefined ? "1px solid #e2e8f0" :
+              strength === 5 ? "1px solid #bbf7d0" :
+              strength >= 3 ? "1px solid #fef3c7" : "1px solid #fecaca",
+    });
+  }
+  return motorBoxCache.get(strength)!;
+};
 
-const toggleChip = (disabled: boolean, active: boolean): React.CSSProperties => ({
-  display: "inline-flex",
-  alignItems: "center",
-  padding: "6px 10px",
-  borderRadius: 12,
-  border: active ? "1px solid #1d4ed8" : "1px solid #e2e8f0",
-  background: disabled ? "#f1f5f9" : active ? "#eff6ff" : "#fff",
-  color: disabled ? "#94a3b8" : active ? "#1d4ed8" : "#475569",
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: disabled ? "not-allowed" : "pointer",
-});
+// Memoized toggleChip style creator with cache
+const toggleChipCache = new Map<string, React.CSSProperties>();
+const toggleChip = (disabled: boolean, active: boolean): React.CSSProperties => {
+  const key = `${disabled}-${active}`;
+  if (!toggleChipCache.has(key)) {
+    toggleChipCache.set(key, {
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "6px 10px",
+      borderRadius: 12,
+      border: active ? "1px solid #1d4ed8" : "1px solid #e2e8f0",
+      background: disabled ? "#f1f5f9" : active ? "#eff6ff" : "#fff",
+      color: disabled ? "#94a3b8" : active ? "#1d4ed8" : "#475569",
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: disabled ? "not-allowed" : "pointer",
+    });
+  }
+  return toggleChipCache.get(key)!;
+};
