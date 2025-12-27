@@ -239,7 +239,7 @@ interface ClinicalScoresProps {
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
-export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps) {
+function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps) {
   const scores = sheet.clinicalScores || {};
   const neuro = sheet.neuroExam || {};
   const diagnosisText = (sheet.diagnosis || "").toLowerCase();
@@ -304,18 +304,18 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
   const ichTier = ichScoreInfo.applied ? getIchSeverity(ichScoreInfo.score) : null;
   const ichMortality = ichScoreInfo.applied ? (ICH_MORTALITY_TABLE[ichScoreInfo.score] ?? "—") : null;
   const aspectsScore = scores.stroke?.aspects;
-  const aspectsBadge = (() => {
+  const aspectsBadge = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return { label: "Awaiting score", color: "#64748b", bg: "#f1f5f9" };
     if (aspectsScore <= 5) return { label: "Large core", color: "#b91c1c", bg: "#fee2e2" };
     if (aspectsScore >= 7) return { label: "Favorable", color: "#15803d", bg: "#dcfce7" };
     return { label: "Borderline", color: "#b45309", bg: "#ffedd5" };
-  })();
-  const aspectsGuidance = (() => {
+  }, [aspectsScore]);
+  const aspectsGuidance = useMemo(() => {
     if (aspectsScore === undefined || aspectsScore === null) return "Document ASPECTS to quantify early ischemic change.";
     if (aspectsScore <= 5) return "Large core (>1/3 MCA) — focus on edema control and early hemicraniectomy planning.";
     if (aspectsScore >= 7) return "Favorable core — thrombectomy candidate if LVO and within 24h window.";
     return "Borderline core — obtain perfusion imaging for penumbra estimate and discuss with neurointervention.";
-  })();
+  }, [aspectsScore]);
 
   const guardHipaaText = (value: string, field: string, onSafe: (clean: string) => void) => {
     const issue = findHipaaIssue(value);
@@ -1373,6 +1373,9 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     </div>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders when props haven't changed
+export default React.memo(ClinicalScores);
 
 // ============================================================================
 // STYLES

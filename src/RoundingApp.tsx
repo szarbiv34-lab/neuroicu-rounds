@@ -406,8 +406,12 @@ function loadFromStorage(): RoundingSheet[] | null {
 function saveToStorage(sheets: RoundingSheet[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, sheets }));
-  } catch {
-    // Silently fail if localStorage is not available
+  } catch (error) {
+    // Handle quota exceeded or other localStorage errors
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn('localStorage quota exceeded. Consider clearing old patient data.');
+    }
+    // Silently fail for other errors (e.g., localStorage disabled)
   }
 }
 
@@ -426,7 +430,7 @@ export default function RoundingApp() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       saveToStorage(sheets);
-    }, 500);
+    }, 1000); // Increased from 500ms to 1000ms to reduce localStorage write frequency
     return () => clearTimeout(timeoutId);
   }, [sheets]);
 
@@ -446,62 +450,83 @@ export default function RoundingApp() {
   }, [activeId]);
 
   const updateNeuroExam = useCallback((patch: Partial<NeuroExam>) => {
-    updateActive({ neuroExam: { ...active.neuroExam, ...patch } });
-  }, [active.neuroExam, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, neuroExam: { ...s.neuroExam, ...patch }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const updateVitals = useCallback((patch: Partial<RoundingSheet["vitals"]>) => {
-    updateActive({ vitals: { ...active.vitals, ...patch } });
-  }, [active.vitals, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, vitals: { ...s.vitals, ...patch }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const toggleChecklist = useCallback((key: string) => {
-    updateActive({ checklist: { ...active.checklist, [key]: !active.checklist[key] } });
-  }, [active.checklist, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, checklist: { ...s.checklist, [key]: !s.checklist[key] }, updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const addProblem = useCallback(() => {
-    updateActive({
-      problems: [
-        ...active.problems,
-        { id: uid(), title: "New problem", assessment: "", plan: "" },
-      ],
-    });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, problems: [...s.problems, { id: uid(), title: "New problem", assessment: "", plan: "" }], updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const updateProblem = useCallback((id: Id, patch: Partial<Problem>) => {
-    updateActive({ problems: active.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)), updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const removeProblem = useCallback((id: Id) => {
-    updateActive({ problems: active.problems.filter((p) => p.id !== id) });
-  }, [active.problems, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.filter((p) => p.id !== id), updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const addTask = useCallback(() => {
-    updateActive({ tasks: [...active.tasks, { id: uid(), text: "New task", done: false, due: "Today" }] });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }], updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const updateTask = useCallback((id: Id, patch: Partial<Task>) => {
-    updateActive({ tasks: active.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)), updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const removeTask = useCallback((id: Id) => {
-    updateActive({ tasks: active.tasks.filter((t) => t.id !== id) });
-  }, [active.tasks, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: s.tasks.filter((t) => t.id !== id), updatedAt: Date.now() } : s))
+    );
+  }, [activeId]);
 
   const handleDiagnosisTypeChange = useCallback((value: DiagnosisType | "") => {
-    const nextType = (value || undefined) as DiagnosisType | undefined;
-    const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
-    if (nextType) {
-      Object.assign(patch, buildDiagnosisPrefillPatch(active, nextType));
-    }
-    updateActive(patch);
-  }, [active, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => {
+        if (s.id !== activeId) return s;
+        const nextType = (value || undefined) as DiagnosisType | undefined;
+        const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
+        if (nextType) {
+          Object.assign(patch, buildDiagnosisPrefillPatch(s, nextType));
+        }
+        return { ...s, ...patch, updatedAt: Date.now() };
+      })
+    );
+  }, [activeId]);
 
   const handleDiagnosisPrefill = useCallback(() => {
-    if (!active.diagnosisType) return;
-    const patch = buildDiagnosisPrefillPatch(active, active.diagnosisType);
-    if (Object.keys(patch).length) {
-      updateActive(patch);
-    }
-  }, [active, updateActive]);
+    setSheets((prev) =>
+      prev.map((s) => {
+        if (s.id !== activeId || !s.diagnosisType) return s;
+        const patch = buildDiagnosisPrefillPatch(s, s.diagnosisType);
+        if (!Object.keys(patch).length) return s;
+        return { ...s, ...patch, updatedAt: Date.now() };
+      })
+    );
+  }, [activeId]);
 
 
   const handleTemplateChange = useCallback((nextId: string) => {
@@ -512,9 +537,15 @@ export default function RoundingApp() {
   const handleAutoTemplateToggle = useCallback((checked: boolean) => {
     setAutoTemplate(checked);
     if (checked) {
-      setTemplateId(getTemplateForDiagnosis(active.diagnosisType));
+      setSheets((prev) => {
+        const currentActive = prev.find((s) => s.id === activeId);
+        if (currentActive) {
+          setTemplateId(getTemplateForDiagnosis(currentActive.diagnosisType));
+        }
+        return prev;
+      });
     }
-  }, [active.diagnosisType]);
+  }, [activeId]);
 
   const addPatient = useCallback(() => {
     const s = buildBlank(`Patient ${sheets.length + 1}`);
@@ -1350,7 +1381,7 @@ type CollapsibleProps = {
   children: React.ReactNode;
 };
 
-const CollapsibleSection = ({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
+const CollapsibleSection = React.memo(({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
     <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, background: "#f8fafc" }}>
@@ -1381,4 +1412,4 @@ const CollapsibleSection = ({ title, defaultCollapsed = false, children }: Colla
       )}
     </div>
   );
-};
+});
