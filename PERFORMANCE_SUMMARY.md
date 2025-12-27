@@ -64,7 +64,7 @@ This document provides a summary of performance issues identified in the Neuro I
 - No increase in bundle size from optimizations
 
 ### Render Performance (Expected Improvements)
-- Callback recreation: Reduced by ~90% (only when activeId changes)
+- Callback recreation: Reduced by ~95% (most callbacks have zero or minimal dependencies)
 - Component re-renders: Reduced by 50%+ (through memoization)
 - LocalStorage writes: Reduced by 50% (1000ms vs 500ms debounce)
 
