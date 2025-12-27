@@ -345,15 +345,18 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
 
   // Update functions - all memoized with useCallback
   const updateSAH = useCallback((patch: Partial<SAHScores>) => {
-    onUpdate({ clinicalScores: { ...sheet.clinicalScores, sah: { ...sheet.clinicalScores?.sah, ...patch } } });
+    const currentScores = sheet.clinicalScores || {};
+    onUpdate({ clinicalScores: { ...currentScores, sah: { ...currentScores.sah, ...patch } } });
   }, [onUpdate, sheet.clinicalScores]);
 
   const updateStroke = useCallback((patch: Partial<StrokeScores>) => {
-    onUpdate({ clinicalScores: { ...sheet.clinicalScores, stroke: { ...sheet.clinicalScores?.stroke, ...patch } } });
+    const currentScores = sheet.clinicalScores || {};
+    onUpdate({ clinicalScores: { ...currentScores, stroke: { ...currentScores.stroke, ...patch } } });
   }, [onUpdate, sheet.clinicalScores]);
 
   const updateICH = useCallback((patch: Partial<ICHScores>) => {
-    onUpdate({ clinicalScores: { ...sheet.clinicalScores, ich: { ...sheet.clinicalScores?.ich, ...patch } } });
+    const currentScores = sheet.clinicalScores || {};
+    onUpdate({ clinicalScores: { ...currentScores, ich: { ...currentScores.ich, ...patch } } });
   }, [onUpdate, sheet.clinicalScores]);
 
   const updateNeuro = useCallback((patch: Partial<typeof neuro>) => {
@@ -885,7 +888,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
                 <label style={label}>Functional outcome / GOC notes</label>
                 <textarea
                   value={scores.ich?.functionalOutcome ?? ""}
-                  onChange={(e) => guardHipaaText(e.target.value, "ICH outcome notes", (clean: string) => updateICH({ functionalOutcome: clean }))}
+                  onChange={(e) => guardHipaaText(e.target.value, "ICH outcome notes", (clean) => updateICH({ functionalOutcome: clean }))}
                   style={{ ...input, minHeight: 70, resize: "vertical" }}
                   placeholder="eg. Discuss comfort-focused care if score ≥4"
                   maxLength={200}
@@ -1269,7 +1272,7 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
             <label style={label}>Free Text Summary (no identifiers)</label>
             <input
               value={neuro.motorExam ?? ""}
-              onChange={(e) => guardHipaaText(e.target.value, "Motor summary", (clean: string) => updateNeuro({ motorExam: clean }))}
+              onChange={(e) => guardHipaaText(e.target.value, "Motor summary", (clean) => updateNeuro({ motorExam: clean }))}
               style={input}
               placeholder="e.g., Full strength bilateral or L hemiparesis 3/5"
               maxLength={200}
@@ -1444,11 +1447,13 @@ const select: React.CSSProperties = {
   cursor: "pointer",
 };
 
-// Memoized motorBox style creator with cache
-const motorBoxCache = new Map<number | undefined, React.CSSProperties>();
+// Memoized motorBox style creator - uses sentinel value for undefined
+const motorBoxCache = new Map<number, React.CSSProperties>();
+const UNDEFINED_STRENGTH = -1;
 const motorBox = (strength?: number): React.CSSProperties => {
-  if (!motorBoxCache.has(strength)) {
-    motorBoxCache.set(strength, {
+  const key = strength ?? UNDEFINED_STRENGTH;
+  if (!motorBoxCache.has(key)) {
+    motorBoxCache.set(key, {
       padding: "12px 16px",
       borderRadius: 10,
       background: strength === undefined ? "#f1f5f9" : 
@@ -1464,13 +1469,13 @@ const motorBox = (strength?: number): React.CSSProperties => {
               strength >= 3 ? "1px solid #fef3c7" : "1px solid #fecaca",
     });
   }
-  return motorBoxCache.get(strength)!;
+  return motorBoxCache.get(key)!;
 };
 
-// Memoized toggleChip style creator with cache
-const toggleChipCache = new Map<string, React.CSSProperties>();
+// Memoized toggleChip style creator - uses bitwise key for efficiency
+const toggleChipCache = new Map<number, React.CSSProperties>();
 const toggleChip = (disabled: boolean, active: boolean): React.CSSProperties => {
-  const key = `${disabled}-${active}`;
+  const key = (disabled ? 2 : 0) | (active ? 1 : 0);
   if (!toggleChipCache.has(key)) {
     toggleChipCache.set(key, {
       display: "inline-flex",

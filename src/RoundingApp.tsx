@@ -1373,25 +1373,34 @@ const btnDanger: React.CSSProperties = {
   background: "#fef2f2",
 };
 
-// Memoized chip style creator with cache for common states
-const chipStyleCache = new Map<boolean, React.CSSProperties>();
-const chip = (on: boolean): React.CSSProperties => {
-  if (!chipStyleCache.has(on)) {
-    chipStyleCache.set(on, {
-      padding: "10px 12px",
-      borderRadius: 10,
-      border: on ? "1px solid #16a34a" : "1px solid #e2e8f0",
-      background: on ? "#dcfce7" : "#fff",
-      color: on ? "#166534" : "#475569",
-      fontSize: 12,
-      fontWeight: 500,
-      textAlign: "left",
-      cursor: "pointer",
-      transition: "all 0.15s",
-    });
-  }
-  return chipStyleCache.get(on)!;
+// Memoized chip style creator - binary states optimized with object lookup
+const chipStyles = {
+  true: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #16a34a",
+    background: "#dcfce7",
+    color: "#166534",
+    fontSize: 12,
+    fontWeight: 500,
+    textAlign: "left" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s",
+  },
+  false: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: 500,
+    textAlign: "left" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s",
+  },
 };
+const chip = (on: boolean): React.CSSProperties => chipStyles[String(on) as 'true' | 'false'];
 
 const hotkeyHint: React.CSSProperties = {
   fontSize: 11,
