@@ -1,5 +1,5 @@
 // RoundingApp.tsx - Neuro ICU Rounding Application
-import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import type { RoundingSheet, Task, Problem, NeuroExam, DiagnosisType } from "./types";
 import { TEMPLATES } from "./smartphrases";
 import { renderSmartPhrase } from "./smartphraseEngine";
@@ -421,12 +421,6 @@ export default function RoundingApp() {
   const [activeTab, setActiveTab] = useState<TabKey>("scores");
   
   const active = useMemo(() => sheets.find((x) => x.id === activeId)!, [sheets, activeId]);
-  
-  // Use a ref to track active diagnosis type for stable callback dependencies
-  const activeDiagnosisTypeRef = useRef<DiagnosisType | undefined>(active.diagnosisType);
-  useEffect(() => {
-    activeDiagnosisTypeRef.current = active.diagnosisType;
-  }, [active.diagnosisType]);
 
   const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [autoTemplate, setAutoTemplate] = useState(true);
@@ -542,10 +536,7 @@ export default function RoundingApp() {
 
   const handleAutoTemplateToggle = useCallback((checked: boolean) => {
     setAutoTemplate(checked);
-    if (checked) {
-      // Use ref to avoid dependency on sheets array
-      setTemplateId(getTemplateForDiagnosis(activeDiagnosisTypeRef.current));
-    }
+    // The useEffect will automatically update the template when autoTemplate becomes true
   }, []);
 
   const addPatient = useCallback(() => {
