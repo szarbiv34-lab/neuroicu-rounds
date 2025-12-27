@@ -1,7 +1,15 @@
 // exampleUsage.ts
-import { renderSmartPhrase } from "./smartphraseEngine";
+// Demonstrates how to use the SmartPhrase engine programmatically
+// This example shows rendering a custom template with sample patient data
+// Note: This file is used by CI to validate the SmartPhrase engine functionality
 
-// Sample SmartPhrase template
+import { renderSmartPhrase } from "./src/smartphraseEngine";
+
+/**
+ * Sample SmartPhrase template demonstrating available tokens.
+ * Templates use @ tokens (e.g., @NAME@, @GCS@) as placeholders that will be
+ * replaced with actual patient data during rendering.
+ */
 const template = {
   name: "Daily ICU Note",
   body: `
@@ -26,7 +34,11 @@ Tasks:
 `.trim(),
 };
 
-// Sample rounding sheet
+/**
+ * Sample rounding sheet with fictitious patient data.
+ * In a real application, this data would come from user input in the UI.
+ * This example demonstrates the structure needed for template rendering.
+ */
 const sampleSheet = {
   dateISO: "2025-12-05",
   patientName: "Baby Doe, M",
@@ -66,5 +78,11 @@ const sampleSheet = {
   ],
 };
 
+// Render the template with sample data
+// The output will have all @ tokens replaced with actual values
 const out = renderSmartPhrase(template as any, sampleSheet as any);
+
+// Print the rendered note to console
+console.log("=== Rendered SmartPhrase Output ===\n");
 console.log(out);
+console.log("\n=== End of Output ===");
