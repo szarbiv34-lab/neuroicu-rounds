@@ -424,7 +424,10 @@ export default function RoundingApp() {
   const smartphrasePreview = useMemo(() => renderSmartPhrase(activeTemplate, active), [activeTemplate, active]);
 
   useEffect(() => {
-    saveToStorage(sheets);
+    const timeoutId = setTimeout(() => {
+      saveToStorage(sheets);
+    }, 500);
+    return () => clearTimeout(timeoutId);
   }, [sheets]);
 
   useEffect(() => {
@@ -653,7 +656,7 @@ export default function RoundingApp() {
           </a>
           <button onClick={addPatient} style={btnSuccess}>+ Add Patient</button>
           <button onClick={copyNote} style={btn}>Copy Note</button>
-          <button onClick={clearData} style={{ ...btn, color: "#dc2626" }} title="Clear all data and reset to demo patients">Reset Data</button>
+          <button onClick={clearData} style={{ ...btn, color: "#dc2626" }} title="Clear all data and reset to demo patients">🔄 Reset Data</button>
         </div>
       </header>
 
