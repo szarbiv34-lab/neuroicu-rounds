@@ -388,8 +388,31 @@ const DEMO_PATIENTS: RoundingSheet[] = [
   },
 ];
 
+const STORAGE_KEY = "neuroicu-rounds-data";
+const STORAGE_VERSION = 1;
+
+function loadFromStorage(): RoundingSheet[] | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed.version !== STORAGE_VERSION) return null;
+    return parsed.sheets || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(sheets: RoundingSheet[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, sheets }));
+  } catch {
+    // Silently fail if localStorage is not available
+  }
+}
+
 export default function RoundingApp() {
-  const [sheets, setSheets] = useState<RoundingSheet[]>(DEMO_PATIENTS);
+  const [sheets, setSheets] = useState<RoundingSheet[]>(() => loadFromStorage() || DEMO_PATIENTS);
   const [activeId, setActiveId] = useState<Id>(sheets[0].id);
   const [activeTab, setActiveTab] = useState<TabKey>("scores");
   
@@ -399,6 +422,13 @@ export default function RoundingApp() {
   const [autoTemplate, setAutoTemplate] = useState(true);
   const activeTemplate = useMemo(() => TEMPLATES.find((t) => t.id === templateId)!, [templateId]);
   const smartphrasePreview = useMemo(() => renderSmartPhrase(activeTemplate, active), [activeTemplate, active]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToStorage(sheets);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [sheets]);
 
   useEffect(() => {
     if (!autoTemplate) return;
@@ -521,6 +551,18 @@ export default function RoundingApp() {
     }
   }, [smartphrasePreview, activeTemplate.label]);
 
+  const clearData = useCallback(() => {
+    if (!confirm("This will clear all patient data and reset to demo patients. Continue?")) return;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      setSheets(DEMO_PATIENTS);
+      setActiveId(DEMO_PATIENTS[0].id);
+      alert("Data cleared. Demo patients restored.");
+    } catch {
+      alert("Failed to clear data.");
+    }
+  }, []);
+
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       const meta = event.metaKey || event.ctrlKey;
@@ -614,6 +656,7 @@ export default function RoundingApp() {
           </a>
           <button onClick={addPatient} style={btnSuccess}>+ Add Patient</button>
           <button onClick={copyNote} style={btn}>Copy Note</button>
+          <button onClick={clearData} style={{ ...btn, color: "#dc2626" }} title="Clear all data and reset to demo patients">🔄 Reset Data</button>
         </div>
       </header>
 
