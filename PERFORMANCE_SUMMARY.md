@@ -60,8 +60,8 @@ This document provides a summary of performance issues identified in the Neuro I
 
 ### Bundle Size
 - Production build: 219.07 kB
-- Gzipped: 66.43 kB
-- No increase in bundle size from optimizations
+- Gzipped: 66.47 kB
+- Net increase in gzipped bundle size from optimizations: +0.04 kB (negligible)
 
 ### Render Performance (Expected Improvements)
 - Callback recreation: Reduced by ~95% (most callbacks have zero or minimal dependencies)
