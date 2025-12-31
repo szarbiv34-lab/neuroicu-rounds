@@ -120,7 +120,7 @@ function saveToStorage(sheets: RoundingSheet[]) {
   } catch (error) {
     // Handle quota exceeded or other localStorage errors
     if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-      console.warn('localStorage quota exceeded. Consider clearing old patient data.');
+      console.warn('localStorage quota exceeded. Try clearing old patient data by clicking "Reset Data" in the header menu, or reduce the number of stored patients.');
     }
   }
 }
