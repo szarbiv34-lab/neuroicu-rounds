@@ -511,10 +511,10 @@ export default function RoundingApp() {
       prev.map((s) => {
         if (s.id !== activeId) return s;
         const nextType = (value || undefined) as DiagnosisType | undefined;
-        const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
-        if (nextType) {
-          Object.assign(patch, buildDiagnosisPrefillPatch(s, nextType));
-        }
+        const patch: Partial<RoundingSheet> = {
+          diagnosisType: nextType,
+          ...(nextType ? buildDiagnosisPrefillPatch(s, nextType) : {}),
+        };
         return { ...s, ...patch, updatedAt: Date.now() };
       })
     );
