@@ -1,0 +1,16 @@
+# Default code owners for all files
+* @szarbiv34-lab
+
+# Clinical content requires medical accuracy review
+/src/ClinicalScores.tsx @szarbiv34-lab
+/src/smartphrases.ts @szarbiv34-lab
+
+# Type definitions affect the entire codebase
+/src/types.ts @szarbiv34-lab
+
+# Documentation changes
+/docs/ @szarbiv34-lab
+*.md @szarbiv34-lab
+
+# GitHub configuration and workflows
+/.github/ @szarbiv34-lab
