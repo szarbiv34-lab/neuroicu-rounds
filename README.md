@@ -34,6 +34,7 @@ A comprehensive neurological intensive care unit (Neuro ICU) rounding applicatio
 - [Usage Guide](#-usage-guide)
 - [Project Structure](#-project-structure)
 - [Documentation](#-documentation)
+- [GitHub Copilot Integration](#-github-copilot-integration)
 - [Contributing](#-contributing)
 - [Troubleshooting](#-troubleshooting)
 
@@ -183,8 +184,35 @@ Comprehensive guides are available in the `docs/` directory:
 - **[User Guide](./docs/USER_GUIDE.md)** - Detailed usage instructions and workflows
 - **[Architecture Overview](./docs/ARCHITECTURE.md)** - Technical architecture and design decisions
 - **[Customization Guide](./docs/CUSTOMIZATION.md)** - How to customize templates, scores, and UI
+- **[Copilot Guide](./docs/COPILOT_GUIDE.md)** - Using GitHub Copilot with this repository
 - **[FAQ](./docs/FAQ.md)** - Frequently asked questions
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
+
+## 🤖 GitHub Copilot Integration
+
+This repository is optimized for use with [GitHub Copilot](https://github.com/features/copilot), including the Copilot coding agent. The repository includes:
+
+- **[Copilot Instructions](./.github/copilot-instructions.md)** - Comprehensive guidance for Copilot on code style, conventions, and project patterns
+- **Issue Templates** - Pre-configured templates for creating well-scoped tasks:
+  - 🐛 Bug reports
+  - ✨ Feature requests
+  - 🤖 Copilot-optimized tasks
+  - 📝 Documentation updates
+
+### Working with Copilot Coding Agent
+
+To get the best results when using GitHub Copilot coding agent:
+
+1. **Create clear, focused issues** using the provided templates
+2. **Use the Copilot Task template** for AI-friendly issue descriptions
+3. **Review Copilot's pull requests** just like any team member's work
+4. **Provide feedback** via PR comments to refine the solution
+
+The Copilot instructions include project-specific details about:
+- TypeScript and React patterns used in this codebase
+- Medical accuracy requirements for clinical content
+- Build and testing workflows
+- Code review expectations
 
 ## 🤝 Contributing
 

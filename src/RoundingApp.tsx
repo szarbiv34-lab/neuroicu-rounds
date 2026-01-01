@@ -479,24 +479,44 @@ export default function RoundingApp() {
   const updateProblem = useCallback((id: Id, patch: Partial<Problem>) => {
     setSheets((prev) =>
       prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)), updatedAt: Date.now() } : s))
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        updatedAt: Date.now() 
+      } : s))
     );
   }, [activeId]);
 
   const removeProblem = useCallback((id: Id) => {
     setSheets((prev) =>
       prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.filter((p) => p.id !== id), updatedAt: Date.now() } : s))
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        problems: s.problems.filter((p) => p.id !== id),
+        updatedAt: Date.now() 
+      } : s))
     );
   }, [activeId]);
 
   const addTask = useCallback(() => {
     setSheets((prev) =>
       prev.map((s) => (s.id === activeId ? { ...s, tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }], updatedAt: Date.now() } : s))
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }],
+        updatedAt: Date.now() 
+      } : s))
     );
   }, [activeId]);
 
   const updateTask = useCallback((id: Id, patch: Partial<Task>) => {
     setSheets((prev) =>
       prev.map((s) => (s.id === activeId ? { ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)), updatedAt: Date.now() } : s))
+      prev.map((s) => (s.id === activeId ? { 
+        ...s, 
+        tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+        updatedAt: Date.now() 
+      } : s))
     );
   }, [activeId]);
 
@@ -1257,7 +1277,9 @@ export default function RoundingApp() {
   );
 }
 
-// Styles
+// ============================================================================
+// STYLES - Defined at module level to prevent recreation on every render
+// ============================================================================
 const card: React.CSSProperties = {
   background: "#fff",
   border: "1px solid #e2e8f0",
@@ -1353,18 +1375,34 @@ const btnDanger: React.CSSProperties = {
   background: "#fef2f2",
 };
 
-const chip = (on: boolean): React.CSSProperties => ({
-  padding: "10px 12px",
-  borderRadius: 10,
-  border: on ? "1px solid #16a34a" : "1px solid #e2e8f0",
-  background: on ? "#dcfce7" : "#fff",
-  color: on ? "#166534" : "#475569",
-  fontSize: 12,
-  fontWeight: 500,
-  textAlign: "left",
-  cursor: "pointer",
-  transition: "all 0.15s",
-});
+// Memoized chip style creator - binary states optimized with object lookup
+const chipStyles = {
+  true: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #16a34a",
+    background: "#dcfce7",
+    color: "#166534",
+    fontSize: 12,
+    fontWeight: 500,
+    textAlign: "left" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s",
+  },
+  false: {
+    padding: "10px 12px",
+    borderRadius: 10,
+    border: "1px solid #e2e8f0",
+    background: "#fff",
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: 500,
+    textAlign: "left" as const,
+    cursor: "pointer" as const,
+    transition: "all 0.15s",
+  },
+};
+const chip = (on: boolean): React.CSSProperties => chipStyles[String(on) as 'true' | 'false'];
 
 const hotkeyHint: React.CSSProperties = {
   fontSize: 11,
