@@ -406,8 +406,15 @@ function loadFromStorage(): RoundingSheet[] | null {
 function saveToStorage(sheets: RoundingSheet[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: STORAGE_VERSION, sheets }));
-  } catch {
-    // Silently fail if localStorage is not available
+  } catch (error) {
+    // Handle quota exceeded or other localStorage errors
+    if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+      console.warn(
+        'localStorage quota exceeded. Try clearing old patient data by clicking "Reset Data" ' +
+        'in the header menu, or reduce the number of stored patients.'
+      );
+    }
+    // Silently fail for other errors (e.g., localStorage disabled)
   }
 }
 
@@ -426,7 +433,7 @@ export default function RoundingApp() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       saveToStorage(sheets);
-    }, 500);
+    }, 1000); // Increased from 500ms to 1000ms to reduce localStorage write frequency
     return () => clearTimeout(timeoutId);
   }, [sheets]);
 
@@ -465,16 +472,13 @@ export default function RoundingApp() {
 
   const addProblem = useCallback(() => {
     setSheets((prev) =>
-      prev.map((s) => (s.id === activeId ? { 
-        ...s, 
-        problems: [...s.problems, { id: uid(), title: "New problem", assessment: "", plan: "" }],
-        updatedAt: Date.now() 
-      } : s))
+      prev.map((s) => (s.id === activeId ? { ...s, problems: [...s.problems, { id: uid(), title: "New problem", assessment: "", plan: "" }], updatedAt: Date.now() } : s))
     );
   }, [activeId]);
 
   const updateProblem = useCallback((id: Id, patch: Partial<Problem>) => {
     setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)), updatedAt: Date.now() } : s))
       prev.map((s) => (s.id === activeId ? { 
         ...s, 
         problems: s.problems.map((p) => (p.id === id ? { ...p, ...patch } : p)),
@@ -485,6 +489,7 @@ export default function RoundingApp() {
 
   const removeProblem = useCallback((id: Id) => {
     setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, problems: s.problems.filter((p) => p.id !== id), updatedAt: Date.now() } : s))
       prev.map((s) => (s.id === activeId ? { 
         ...s, 
         problems: s.problems.filter((p) => p.id !== id),
@@ -495,6 +500,7 @@ export default function RoundingApp() {
 
   const addTask = useCallback(() => {
     setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }], updatedAt: Date.now() } : s))
       prev.map((s) => (s.id === activeId ? { 
         ...s, 
         tasks: [...s.tasks, { id: uid(), text: "New task", done: false, due: "Today" }],
@@ -505,6 +511,7 @@ export default function RoundingApp() {
 
   const updateTask = useCallback((id: Id, patch: Partial<Task>) => {
     setSheets((prev) =>
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)), updatedAt: Date.now() } : s))
       prev.map((s) => (s.id === activeId ? { 
         ...s, 
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
@@ -515,23 +522,19 @@ export default function RoundingApp() {
 
   const removeTask = useCallback((id: Id) => {
     setSheets((prev) =>
-      prev.map((s) => (s.id === activeId ? { 
-        ...s, 
-        tasks: s.tasks.filter((t) => t.id !== id),
-        updatedAt: Date.now() 
-      } : s))
+      prev.map((s) => (s.id === activeId ? { ...s, tasks: s.tasks.filter((t) => t.id !== id), updatedAt: Date.now() } : s))
     );
   }, [activeId]);
 
   const handleDiagnosisTypeChange = useCallback((value: DiagnosisType | "") => {
-    const nextType = (value || undefined) as DiagnosisType | undefined;
     setSheets((prev) =>
       prev.map((s) => {
         if (s.id !== activeId) return s;
-        const patch: Partial<RoundingSheet> = { diagnosisType: nextType };
-        if (nextType) {
-          Object.assign(patch, buildDiagnosisPrefillPatch(s, nextType));
-        }
+        const nextType = (value || undefined) as DiagnosisType | undefined;
+        const patch: Partial<RoundingSheet> = {
+          diagnosisType: nextType,
+          ...(nextType ? buildDiagnosisPrefillPatch(s, nextType) : {}),
+        };
         return { ...s, ...patch, updatedAt: Date.now() };
       })
     );
@@ -556,10 +559,9 @@ export default function RoundingApp() {
 
   const handleAutoTemplateToggle = useCallback((checked: boolean) => {
     setAutoTemplate(checked);
-    if (checked) {
-      setTemplateId(getTemplateForDiagnosis(active.diagnosisType));
-    }
-  }, [active.diagnosisType]);
+    // When enabled, the useEffect that depends on [active.diagnosisType, autoTemplate, templateId]
+    // will automatically update the template to match the current diagnosis type
+  }, []);
 
   const addPatient = useCallback(() => {
     const s = buildBlank(`Patient ${sheets.length + 1}`);
@@ -1413,7 +1415,7 @@ type CollapsibleProps = {
   children: React.ReactNode;
 };
 
-const CollapsibleSection = ({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
+const CollapsibleSection = React.memo(({ title, defaultCollapsed = false, children }: CollapsibleProps) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   return (
     <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, marginBottom: 16, background: "#f8fafc" }}>
@@ -1444,4 +1446,6 @@ const CollapsibleSection = ({ title, defaultCollapsed = false, children }: Colla
       )}
     </div>
   );
-};
+});
+
+CollapsibleSection.displayName = 'CollapsibleSection';

@@ -238,7 +238,7 @@ interface ClinicalScoresProps {
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
-export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps) {
+function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps) {
   const scores = sheet.clinicalScores || {};
   const neuro = sheet.neuroExam || {};
   const diagnosisText = (sheet.diagnosis || "").toLowerCase();
@@ -1391,6 +1391,11 @@ export default function ClinicalScores({ sheet, onUpdate }: ClinicalScoresProps)
     </div>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders when props haven't changed
+const MemoizedClinicalScores = React.memo(ClinicalScores);
+MemoizedClinicalScores.displayName = 'ClinicalScores';
+export default MemoizedClinicalScores;
 
 // ============================================================================
 // STYLES - Defined at module level to prevent recreation on every render
