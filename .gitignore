@@ -6,6 +6,8 @@ node_modules/
 
 # Build output
 dist/
+*.js
+*.js.map
 
 # Test files
 performanceTest.ts

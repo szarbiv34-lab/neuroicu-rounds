@@ -198,6 +198,9 @@ This repository is optimized for use with [GitHub Copilot](https://github.com/fe
   - ✨ Feature requests
   - 🤖 Copilot-optimized tasks
   - 📝 Documentation updates
+  - 📊 Information gathering / Triage
+  - 🎯 Parent issues / Epics
+  - See the [Issue Templates Guide](./.github/ISSUE_TEMPLATE/README.md) for details
 
 ### Working with Copilot Coding Agent
 
