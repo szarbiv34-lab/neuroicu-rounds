@@ -1,0 +1,218 @@
+name: 🎯 Parent Issue / Epic
+description: Create a parent issue to organize and track multiple related sub-issues
+title: "[Epic]: "
+labels: ["epic", "tracking"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template helps create parent/epic issues that organize multiple related sub-issues.
+        Use this for complex features or initiatives that require breaking down into smaller tasks.
+
+  - type: textarea
+    id: overview
+    attributes:
+      label: Epic Overview
+      description: High-level description of what this epic encompasses
+      placeholder: Describe the overall goal and scope of this initiative...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: epic-type
+    attributes:
+      label: Epic Type
+      description: What type of initiative is this?
+      options:
+        - Major Feature
+        - Architecture Improvement
+        - Clinical Content Expansion
+        - Documentation Overhaul
+        - Performance Initiative
+        - Security Enhancement
+        - Technical Debt Reduction
+        - Process Improvement
+        - Research & Planning
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation & Goals
+      description: Why is this epic needed? What are the objectives?
+      placeholder: |
+        **Why:** Explain the problem or opportunity
+        
+        **Goals:**
+        - Goal 1
+        - Goal 2
+        - Goal 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in scope and out of scope for this epic?
+      placeholder: |
+        **In Scope:**
+        - Item 1
+        - Item 2
+        
+        **Out of Scope:**
+        - Item A
+        - Item B
+    validations:
+      required: true
+
+  - type: textarea
+    id: sub-issues
+    attributes:
+      label: Sub-Issues
+      description: List all sub-issues that make up this epic (will be linked after creation)
+      placeholder: |
+        - [ ] #XX - Sub-issue 1 title
+        - [ ] #XX - Sub-issue 2 title
+        - [ ] #XX - Sub-issue 3 title
+        
+        **Note:** Create sub-issues after this parent issue is created, then link them here.
+      value: |
+        <!-- Update this checklist as sub-issues are created and completed -->
+        
+        ### Information Gathering
+        - [ ] #XX - Information gathering sub-issue 1
+        
+        ### Implementation
+        - [ ] #XX - Implementation sub-issue 1
+        
+        ### Documentation & Testing
+        - [ ] #XX - Documentation update
+        - [ ] #XX - Testing task
+    validations:
+      required: false
+
+  - type: textarea
+    id: phases
+    attributes:
+      label: Implementation Phases
+      description: Break down the work into logical phases
+      placeholder: |
+        **Phase 1: Research & Planning**
+        - Gather requirements
+        - Design solution
+        
+        **Phase 2: Implementation**
+        - Core functionality
+        - Integration
+        
+        **Phase 3: Polish & Launch**
+        - Testing
+        - Documentation
+        - Deployment
+    validations:
+      required: false
+
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: Success Criteria
+      description: How will we measure success for this epic?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] All sub-issues completed
+        - [ ] Documentation updated
+        - [ ] Tests passing
+      value: |
+        - [ ] All sub-issues completed
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this epic?
+      options:
+        - P0 - Critical
+        - P1 - High
+        - P2 - Medium
+        - P3 - Low
+      default: 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: What must be completed before or during this epic?
+      placeholder: |
+        **Blocking:**
+        - Issue #123 must be completed first
+        
+        **Related:**
+        - Should coordinate with #456
+    validations:
+      required: false
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks & Considerations
+      description: What risks or challenges should be considered?
+      placeholder: |
+        - Risk 1: [description and mitigation]
+        - Risk 2: [description and mitigation]
+    validations:
+      required: false
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Target Timeline
+      description: What is the target timeline for completion?
+      placeholder: |
+        - Start: YYYY-MM-DD
+        - Target completion: YYYY-MM-DD
+        - Key milestones:
+          - Milestone 1: Date
+          - Milestone 2: Date
+    validations:
+      required: false
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resources & References
+      description: Links to relevant documentation, designs, or research
+      placeholder: |
+        - Design doc: [link]
+        - Research: [link]
+        - Similar work: [link]
+    validations:
+      required: false
+
+  - type: textarea
+    id: stakeholders
+    attributes:
+      label: Stakeholders
+      description: Who should be involved or kept informed?
+      placeholder: |
+        - Owner: @username
+        - Reviewers: @user1, @user2
+        - Stakeholders: @team
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+    validations:
+      required: false

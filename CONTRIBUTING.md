@@ -279,6 +279,62 @@ We welcome feature suggestions! Please include:
 - **Alternatives**: Other approaches you've considered
 - **Clinical value**: How this improves patient care or workflow
 
+## 📊 Issue Triage & Information Gathering
+
+Before starting implementation on complex features or unclear issues, we use a structured information gathering process to ensure we have all the necessary details.
+
+### When to Use Information Gathering
+
+Use the **Information Gathering / Triage** issue template when:
+
+- Requirements are unclear or incomplete
+- Technical approach needs investigation
+- Multiple solutions need evaluation
+- Clinical accuracy verification is required
+- Dependencies or impacts need assessment
+- Stakeholder input is needed before proceeding
+
+### Creating Parent/Epic Issues
+
+For large initiatives that span multiple related tasks, use the **Parent Issue / Epic** template to:
+
+1. **Organize work**: Break down complex features into manageable sub-issues
+2. **Track progress**: Use checklists to monitor completion of related tasks
+3. **Coordinate effort**: Ensure all stakeholders understand scope and dependencies
+4. **Document decisions**: Keep context and rationale in one place
+
+### Triage Process
+
+1. **Create info-gathering issue**: Use the template to document what needs clarification
+2. **List key questions**: Enumerate specific questions that need answers
+3. **Identify stakeholders**: Tag relevant experts or team members
+4. **Gather information**: Collect requirements, research options, verify clinical accuracy
+5. **Document findings**: Update the issue with answers and decisions
+6. **Create implementation issues**: Once clarity is achieved, create focused task issues
+7. **Link related issues**: Connect sub-issues to parent epic for tracking
+
+### Example Workflow
+
+For a complex feature request:
+
+1. Create a **Parent Issue** using the Epic template to define overall scope
+2. Create **Information Gathering** sub-issues for each area needing clarification:
+   - Technical feasibility investigation
+   - Clinical accuracy requirements
+   - UI/UX design considerations
+   - Performance impact assessment
+3. Once information is gathered, create **Implementation** sub-issues using Copilot Task or Feature templates
+4. Update parent issue checklist as work progresses
+5. Close parent issue when all sub-issues are complete
+
+### Benefits
+
+- **Reduces rework**: Clarify requirements before coding
+- **Better estimates**: Understand scope before committing to timelines
+- **Improved quality**: Ensure clinical accuracy and technical soundness
+- **Clear decisions**: Document why choices were made
+- **Team alignment**: Keep everyone informed and coordinated
+
 ## 📋 Code Review Process
 
 1. **Automated checks**: Code must build without errors
