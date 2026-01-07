@@ -61,8 +61,8 @@ const sampleSheet = {
     },
   ],
   tasks: [
-    { text: "Obtain ABG after morning blood gas", done: false },
-    { text: "Check UAC site and document", done: true, due: "AM" },
+    { id: "task-1", text: "Obtain ABG after morning blood gas", done: false },
+    { id: "task-2", text: "Check UAC site and document", done: true, due: "AM" },
   ],
 };
 
