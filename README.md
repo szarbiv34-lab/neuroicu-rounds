@@ -188,6 +188,14 @@ Comprehensive guides are available in the `docs/` directory:
 - **[FAQ](./docs/FAQ.md)** - Frequently asked questions
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
 
+### 🆕 Template Customization (Feature Planning)
+
+Planning documents for upcoming customizable rounding templates feature:
+
+- **[Requirements Document](./docs/TEMPLATE_CUSTOMIZATION_REQUIREMENTS.md)** - Comprehensive requirements and user stories
+- **[Executive Summary](./docs/TEMPLATE_CUSTOMIZATION_SUMMARY.md)** - Quick overview and priorities
+- **[Implementation Roadmap](./docs/TEMPLATE_CUSTOMIZATION_ROADMAP.md)** - Phased development plan
+
 ## 🤖 GitHub Copilot Integration
 
 This repository is optimized for use with [GitHub Copilot](https://github.com/features/copilot), including the Copilot coding agent. The repository includes:
