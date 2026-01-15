@@ -184,6 +184,7 @@ Comprehensive guides are available in the `docs/` directory:
 - **[User Guide](./docs/USER_GUIDE.md)** - Detailed usage instructions and workflows
 - **[Architecture Overview](./docs/ARCHITECTURE.md)** - Technical architecture and design decisions
 - **[Customization Guide](./docs/CUSTOMIZATION.md)** - How to customize templates, scores, and UI
+- **[Template Format Research](./docs/TEMPLATE_RESEARCH.md)** - Research on EMR/EHR template formats and best practices
 - **[Copilot Guide](./docs/COPILOT_GUIDE.md)** - Using GitHub Copilot with this repository
 - **[FAQ](./docs/FAQ.md)** - Frequently asked questions
 - **[Contributing Guidelines](./CONTRIBUTING.md)** - How to contribute to the project
