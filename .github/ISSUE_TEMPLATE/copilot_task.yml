@@ -1,0 +1,108 @@
+name: 🤖 Copilot Task
+description: Create a well-scoped task for GitHub Copilot coding agent
+title: "[Task]: "
+labels: ["copilot-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template helps create well-scoped tasks for GitHub Copilot coding agent.
+        For best results, provide clear, specific, and atomic tasks.
+
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: Task Type
+      description: What type of task is this?
+      options:
+        - Bug Fix
+        - Feature Addition
+        - Code Refactoring
+        - Documentation Update
+        - Test Coverage
+        - Performance Optimization
+        - UI/UX Improvement
+        - Accessibility Enhancement
+        - Technical Debt
+    validations:
+      required: true
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Task Objective
+      description: Clear, concise description of what needs to be done
+      placeholder: Describe the task in 1-2 sentences...
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Detailed Description
+      description: Provide implementation details and context
+      placeholder: |
+        - What needs to change
+        - Why this change is needed
+        - Any constraints or requirements
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Files to Modify
+      description: Which files are likely to need changes?
+      placeholder: |
+        - src/RoundingApp.tsx
+        - src/ClinicalScores.tsx
+        - src/types.ts
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How will we know this task is complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] All TypeScript types are correct
+        - [ ] Code builds without errors
+        - [ ] Manual testing confirms functionality
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Task Scope
+      description: How complex is this task?
+      options:
+        - Small (< 50 lines changed)
+        - Medium (50-200 lines changed)
+        - Large (> 200 lines changed)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Requirements
+      description: What additional work is needed?
+      options:
+        - label: Tests required
+        - label: Documentation update required
+        - label: Medical accuracy verification required
+        - label: UI/UX review needed
+        - label: Performance considerations
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that would help complete this task
+      placeholder: References, examples, constraints, etc.
+    validations:
+      required: false

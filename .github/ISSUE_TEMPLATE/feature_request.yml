@@ -1,0 +1,91 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible.
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature are you requesting?
+      options:
+        - New Clinical Score
+        - New SmartPhrase Template
+        - UI Enhancement
+        - Workflow Improvement
+        - Performance Improvement
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Clinical Use Case
+      description: Describe the clinical scenario or workflow need
+      placeholder: Describe when and how this feature would be used...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How you envision the feature working
+      placeholder: Describe your proposed solution...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Other approaches you've considered
+      placeholder: Describe alternative solutions...
+    validations:
+      required: false
+
+  - type: textarea
+    id: clinical-value
+    attributes:
+      label: Clinical Value
+      description: How this improves patient care or workflow efficiency
+      placeholder: Explain the clinical benefit...
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Clinical References
+      description: If suggesting a new clinical score, provide literature references
+      placeholder: |
+        - Citation 1
+        - Citation 2
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What needs to be true for this feature to be complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context or screenshots about the feature request
+    validations:
+      required: false

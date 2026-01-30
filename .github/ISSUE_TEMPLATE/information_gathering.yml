@@ -1,0 +1,182 @@
+name: 📊 Information Gathering / Triage
+description: Gather requirements and clarifications for issue triage and development planning
+title: "[Info]: "
+labels: ["triage", "information-gathering"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template helps organize information gathering for issue triage and development planning.
+        Use this when you need to collect requirements, clarifications, or details before implementation begins.
+
+  - type: dropdown
+    id: issue-category
+    attributes:
+      label: Issue Category
+      description: What category does this information gathering relate to?
+      options:
+        - Bug Triage
+        - Feature Planning
+        - Technical Investigation
+        - Requirements Clarification
+        - Architecture Decision
+        - Clinical Accuracy Review
+        - Performance Analysis
+        - Security Assessment
+        - Dependency Evaluation
+        - User Experience Research
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: Background & Context
+      description: Provide background on why this information gathering is needed
+      placeholder: |
+        - What prompted this investigation?
+        - What decision needs to be made?
+        - What problem are we trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current State
+      description: Describe the current state or what is known
+      placeholder: |
+        - What do we know so far?
+        - What has been attempted?
+        - What documentation exists?
+    validations:
+      required: true
+
+  - type: textarea
+    id: questions
+    attributes:
+      label: Key Questions
+      description: List the key questions that need to be answered
+      placeholder: |
+        1. Question 1?
+        2. Question 2?
+        3. Question 3?
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: information-needed
+    attributes:
+      label: Information Needed
+      description: What specific information or clarifications are required?
+      placeholder: |
+        - [ ] Item 1
+        - [ ] Item 2
+        - [ ] Item 3
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: stakeholders
+    attributes:
+      label: Stakeholders / Experts
+      description: Who should be consulted or provide input?
+      placeholder: |
+        - @username - expertise area
+        - Team/role - why they should be involved
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How urgent is this information gathering?
+      options:
+        - Low - Nice to clarify
+        - Medium - Important for planning
+        - High - Blocking development
+        - Critical - Blocking release
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: What is the potential impact of this information on the project?
+      placeholder: |
+        - How does this affect development timeline?
+        - What features/bugs are blocked?
+        - What risks exist without this information?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Completion Criteria
+      description: How will we know this information gathering is complete?
+      placeholder: |
+        - [ ] All key questions answered
+        - [ ] Decision documented
+        - [ ] Stakeholders consulted
+        - [ ] Next steps identified
+      value: |
+        - [ ] All key questions answered
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues
+      description: Link any related issues, PRs, or discussions
+      placeholder: |
+        - Blocks: #123
+        - Related to: #456
+        - Parent issue: #789
+    validations:
+      required: false
+
+  - type: textarea
+    id: resources
+    attributes:
+      label: Resources & References
+      description: List any relevant documentation, research, or external resources
+      placeholder: |
+        - Documentation: [link]
+        - Research paper: [citation]
+        - Similar implementation: [example]
+    validations:
+      required: false
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      description: When does this information need to be gathered by?
+      placeholder: |
+        - Target completion date: YYYY-MM-DD
+        - Dependencies on timeline: [explain]
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context that would be helpful
+    validations:
+      required: false

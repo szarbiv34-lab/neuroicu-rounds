@@ -26,3 +26,7 @@ jobs:
 
       - name: Run example script
         run: npx ts-node exampleUsage.ts
+          npm install --no-audit --no-fund --save-dev typescript tsx @types/node
+
+      - name: Run example script
+        run: npx tsx exampleUsage.ts
