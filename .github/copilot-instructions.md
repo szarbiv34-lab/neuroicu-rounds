@@ -80,11 +80,17 @@ The app includes a template engine (`smartphraseEngine.ts`) that renders clinica
 
 ## Testing
 
-Currently, there is no test infrastructure in this repository. When adding tests in the future:
-- Follow React Testing Library best practices
-- Place tests adjacent to components or in a `__tests__` directory
-- Use `.test.tsx` or `.spec.tsx` extensions
+This project **does not use automated tests** at this time and **relies on thorough manual testing**, which is especially important because this is a Neuro ICU clinical application.
 
+When making changes, you **must** manually test all affected areas of the app with a focus on clinical accuracy and bedside usability:
+- Verify all clinical scores (e.g., GCS, NIHSS, Hunt & Hess, Fisher, mRS) against published reference values and edge-case examples
+- Confirm SmartPhrase generation produces clinically accurate, well-formatted text for each relevant diagnosis type
+- Ensure patient data persists correctly in `localStorage` across reloads and basic navigation flows
+- Exercise key rounding workflows end-to-end (adding patients, updating exams/scores, generating notes)
+- Check the UI on tablet and desktop form factors to ensure it is usable at the bedside
+- Inspect the browser console for errors or warnings
+
+More detailed guidance on manual and clinical testing expectations is available in this repository’s documentation and custom instructions (see the `custom-instructions` directory and docs under `docs/`).
 ## Deployment
 
 ### GitHub Pages
