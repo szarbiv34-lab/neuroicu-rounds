@@ -22,6 +22,10 @@ jobs:
       - name: Install dev dependencies
         run: |
           npm init -y
+          npm install --no-audit --no-fund --save-dev typescript ts-node @types/node
+
+      - name: Run example script
+        run: npx ts-node exampleUsage.ts
           npm install --no-audit --no-fund --save-dev typescript tsx @types/node
 
       - name: Run example script

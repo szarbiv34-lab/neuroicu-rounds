@@ -1,4 +1,10 @@
 // exampleUsage.ts
+import { renderSmartPhrase } from "./smartphraseEngine";
+
+// Sample SmartPhrase template
+const template = {
+  id: "example-daily-note",
+  label: "Daily ICU Note",
 // Demonstrates how to use the SmartPhrase engine programmatically
 // This example shows rendering a custom template with sample patient data
 // Note: This file is used by CI to validate the SmartPhrase engine functionality
@@ -34,6 +40,9 @@ Tasks:
 `.trim(),
 };
 
+// Sample rounding sheet
+const sampleSheet = {
+  id: "example-patient-001",
 /**
  * Sample rounding sheet with fictitious patient data.
  * In a real application, this data would come from user input in the UI.
@@ -62,17 +71,27 @@ const sampleSheet = {
   },
   problems: [
     {
+      id: "prob-001",
       title: "Respiratory failure",
       assessment: "Stable on moderate ventilatory support, intermittent desaturations",
       plan: "Continue ventilator, gradually wean FiO2 as tolerated. Consider extubation criteria tomorrow.",
     },
     {
+      id: "prob-002",
       title: "Hypotension",
       assessment: "MAP low but improving on low-dose dopamine",
       plan: "Keep dopamine, monitor urine output and lactate. Titrate as needed.",
     },
   ],
   tasks: [
+    { id: "task-001", text: "Obtain ABG after morning blood gas", done: false },
+    { id: "task-002", text: "Check UAC site and document", done: true, due: "AM" },
+  ],
+  updatedAt: Date.now(),
+};
+
+const out = renderSmartPhrase(template as any, sampleSheet as any);
+console.log(out);
     { text: "Obtain ABG after morning blood gas", done: false },
     { text: "Check UAC site and document", done: true, due: "AM" },
   ],
